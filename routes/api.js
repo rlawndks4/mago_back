@@ -2025,9 +2025,10 @@ const getOneEvent = (req, res) => {
 }
 const getItems = (req, res) => {
     try {
-        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order } = req.query;
-        let table = req.query.table ?? "user";
+        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
         let sql = `SELECT * FROM ${table}_table `;
+        console.log(req.body)
+        console.log(req.query)
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
 
         let whereStr = " WHERE 1=1 ";

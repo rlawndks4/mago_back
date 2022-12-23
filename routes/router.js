@@ -51,6 +51,7 @@ router.get('/onsearchallitem', onSearchAllItem);
 router.get('/oneword', getOneWord);
 router.get('/oneevent', getOneEvent);
 router.get('/items', getItems);
+router.post('/items', getItems);
 router.get('/getallposts', getAllPosts);
 router.get('/getuserstatistics', getUserStatistics);
 router.get('/itemcount', itemCount);

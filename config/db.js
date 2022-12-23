@@ -1,11 +1,11 @@
 const mysql = require('mysql')
 
 const db = mysql.createConnection({
-    host : "210.114.1.28",
+    host : "purplevery13.cafe24.com",
     user : 'root',
     password : 'qjfwk100djr!',
     port : 3306,
-    database:'stock_integrated',
+    database:'first_academy',
     timezone: 'Asia/Seoul',
     charset: 'utf8mb4'
 })
