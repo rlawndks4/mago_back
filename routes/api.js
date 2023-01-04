@@ -991,6 +991,71 @@ const getHomeContent = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+const getAcademyList = async (req, res) => {
+    try {
+        let result_list = [];
+        let sql_list = [
+            {table:'academy',sql:'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4',type:'list'},
+            {table:'master',sql:'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC',type:'list'},
+        ];
+
+        for (var i = 0; i < sql_list.length; i++) {
+            result_list.push(queryPromise(sql_list[i]?.table, sql_list[i]?.sql));
+        }
+        for (var i = 0; i < result_list.length; i++) {
+            await result_list[i];
+        }
+        let result_obj = {};
+        for (var i = 0; i < sql_list.length; i++) {
+            result_list.push(queryPromise(sql_list[i].table, sql_list[i].sql, sql_list[i].type));
+        }
+        for (var i = 0; i < result_list.length; i++) {
+            await result_list[i];
+        }
+        let result = (await when(result_list));
+        for (var i = 0; i < (await result).length; i++) {
+            result_obj[(await result[i])?.table] = (await result[i])?.data;
+        }
+        return response(req, res, 100, "success", result_obj)
+
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+const getEnrolmentList = async (req, res) => {
+    try {
+        let result_list = [];
+        let sql_list = [
+            {table:'banner',sql:'SELECT enrolment_banner_img_1,enrolment_banner_img_2,enrolment_banner_img_3,enrolment_banner_img_4,enrolment_banner_img_5, enrolment_bottom_banner FROM setting_table ORDER BY pk DESC LIMIT 1',type:'obj'},
+            {table:'best_academy',sql:'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4',type:'list'},
+            {table:'master',sql:'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC',type:'list'},
+        ];
+
+        for (var i = 0; i < sql_list.length; i++) {
+            result_list.push(queryPromise(sql_list[i]?.table, sql_list[i]?.sql));
+        }
+        for (var i = 0; i < result_list.length; i++) {
+            await result_list[i];
+        }
+        let result_obj = {};
+        for (var i = 0; i < sql_list.length; i++) {
+            result_list.push(queryPromise(sql_list[i].table, sql_list[i].sql, sql_list[i].type));
+        }
+        for (var i = 0; i < result_list.length; i++) {
+            await result_list[i];
+        }
+        let result = (await when(result_list));
+        for (var i = 0; i < (await result).length; i++) {
+            result_obj[(await result[i])?.table] = (await result[i])?.data;
+        }
+        return response(req, res, 100, "success", result_obj)
+
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
 const getChannelList = (req, res) => {
     try {
         db.query("SELECT * FROM user_table WHERE user_level IN (25, 30) ", (err, result) => {
@@ -1298,7 +1363,7 @@ const addItem = async (req, res) => {
             values_str += ", ?"
         }
         let table = req.body.table;
-        if(table=='notice' || table=='faq' || table=='event'){
+        if(table=='notice' || table=='faq'){
             keys.push('user_pk');
             values.push(decode?.pk);
             values_str += ", ?"
@@ -1556,10 +1621,12 @@ const getItem = async (req, res) => {
         let table = req.query.table ?? "user";
         let pk = req.query.pk;
         const decode = checkLevel(req.cookies.token, 0)
-        if ((!decode || decode?.user_level == -10) && table != 'notice') {
+        if ((!decode || decode?.user_level == -10) && table != 'notice' && table != 'master') {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-
+        if(table == 'master'){
+            table = 'user'
+        }
         let sql = "";
         if(pk){
             sql = `SELECT * FROM ${table}_table  WHERE pk=${pk} `;
@@ -2058,9 +2125,7 @@ const getItems = async (req, res) => {
 
         let whereStr = " WHERE 1=1 ";
         if (level) {
-
             whereStr += ` AND ${table}_table.user_level=${level} `;
-
         }
         if (category_pk) {
             whereStr += ` AND ${table}_table.category_pk=${category_pk} `;
@@ -2090,12 +2155,14 @@ const getItems = async (req, res) => {
         order = await sqlJoinFormat(table, sql, order, pageSql).order;
 
         pageSql = pageSql + whereStr;
+
         sql = sql + whereStr + ` ORDER BY ${order ? order : 'sort'} DESC `;
         if (limit && !page) {
             sql += ` LIMIT ${limit} `;
         }
         if (page) {
             sql += ` LIMIT ${(page - 1) * page_cut}, ${page_cut}`;
+            console.log(sql)
             db.query(pageSql, async (err, result1) => {
                 if (err) {
                     console.log(err)
@@ -2131,7 +2198,27 @@ const getItems = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-
+const getMyItems = async(req, res) =>{
+    try{
+        const decode = checkLevel(req.cookies.token, 0)
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        let {table, page, page_cut} = req.body;
+        let data = [];
+        let data_length = 0;
+        if(page){
+            data_length = await dbQueryList(`SELECT COUNT(*) FROM ${table}_table WHERE user_pk=${decode?.pk}`);
+        }
+        let sql = `SELECT * FROM ${table}_table WHERE user_pk=${decode?.pk} ORDER BY pk DESC `+(page?`LIMIT ${(page-1)*page_cut}, ${(page)*page_cut}`:``);
+        data = await dbQueryList(sql);
+        data = data?.result;
+        return response(req, res, 100, "success", {maxPage:makeMaxPage(data_length, 10), data:data});
+    }catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
 const getSetting = (req, res) => {
     try {
         db.query("SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1", (err, result) => {
@@ -2245,7 +2332,6 @@ const updateStatus = (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-
 const onTheTopItem = (req, res) => {
     try {
         const { table, pk } = req.body;
@@ -2400,5 +2486,5 @@ module.exports = {
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     addMaster, onSignUp, addOneWord, addOneEvent, addItem, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
-    deleteItem, onResign
+    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems
 };

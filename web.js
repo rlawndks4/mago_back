@@ -170,8 +170,11 @@ app.get('/api/item', async (req, res) => {
 
                 let whereStr = " WHERE pk=? ";
                 const decode = checkLevel(req.cookies.token, 0)
-                if ((!decode || decode?.user_level == -10) && table !== 'notice') {
-                        return response(req, res, -150, "권한이 없습니다.", [])
+                if ((!decode || decode?.user_level == -10) && table !== 'notice'&& table !== 'master') {
+                        return response(req, res, -150, "권한이 없습니다.", []);
+                }
+                if(table=='master'){
+                        table = 'user';
                 }
                 if (table == "setting") {
                         whereStr = "";
@@ -183,23 +186,23 @@ app.get('/api/item', async (req, res) => {
                         db.query(`UPDATE ${table}_table SET views=views+1 WHERE pk=?`, [pk], (err, result_view) => {
                                 if (err) {
                                         console.log(err)
-                                        return response(req, res, -200, "서버 에러 발생", [])
+                                        return response(req, res, -200, "서버 에러 발생", []);
                                 }
                         })
                 }
                 db.query(sql, [pk], (err, result) => {
                         if (err) {
                                 console.log(err)
-                                return response(req, res, -200, "서버 에러 발생s", [])
+                                return response(req, res, -200, "서버 에러 발생s", []);
                         } else {
-                                return response(req, res, 100, "success", result[0])
+                                return response(req, res, 100, "success", result[0]);
                         }
                 })
 
         }
         catch (err) {
                 console.log(err)
-                return response(req, res, -200, "서버 에러 발생", [])
+                return response(req, res, -200, "서버 에러 발생", []);
         }
 });
 
@@ -230,7 +233,7 @@ app.get('/api/getvideocontent', (req, res) => {
                 db.query(sql1, [pk], async (err, result1) => {
                         if (err) {
                                 console.log(err)
-                                return response(req, res, -200, "서버 에러 발생", [])
+                                return response(req, res, -200, "서버 에러 발생", []);
                         } else {
                                 await db.query(sql2, [pk], async (err, result2) => {
                                         if (err) {
