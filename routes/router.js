@@ -3,12 +3,26 @@ const router = express.Router();
 const { upload } = require('../config/multerConfig')
 const {
     onLoginById, getUserToken, onLogout, checkExistId, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns,//auth
-    getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount,//select
+    getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     addMaster, onSignUp, addOneWord, addOneEvent, addItem, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
     deleteItem, onResign
 } = require('./api')
-
+const image_list = [
+    { name: 'master' },
+    { name: 'master2' },
+    { name: 'content' },
+    { name: 'content1' },
+    { name: 'content2' },
+    { name: 'content3' },
+    { name: 'content4' },
+    { name: 'content5' },
+    { name: 'popup' },
+    { name: 'profile' },
+    { name: 'ad' },
+    { name: 'note' },
+]
+router.post('/addimageitems', upload.fields(image_list), addImageItems);
 router.post('/addalarm', addAlarm);
 router.post('/updatealarm', updateAlarm);
 router.post('/editmyinfo', editMyInfo);
@@ -70,7 +84,7 @@ router.post('/updatecomment', updateComment);
 router.get('/getcommentsmanager', getCommentsManager);
 router.post('/getcountnotreadnoti', getCountNotReadNoti);
 router.get('/getnoticeandalarmlastpk', getNoticeAndAlarmLastPk);
-router.post('/addpopup',upload.single('content'), addPopup);
-router.post('/updatepopup',upload.single('content'), updatePopup);
+router.post('/addpopup', upload.single('content'), addPopup);
+router.post('/updatepopup', upload.single('content'), updatePopup);
 
 module.exports = router;

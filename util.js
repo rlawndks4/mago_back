@@ -1,11 +1,16 @@
 //const { request } = require('express')
 const jwt = require('jsonwebtoken')
 const db = require('./config/db')
-const jwtSecret = "djfudnsqlalfKeyFmfRkwu"
 const firebase = require("firebase-admin");
 const fcmNode = require("fcm-node");
 const serviceAccount = require("./config/privatekey_firebase.json");
 const { insertQuery } = require('./query-util');
+const crypto = require('crypto')
+const salt = "435f5ef2ffb83a632c843926b35ae7855bc2520021a73a043db41670bfaeb722"
+const saltRounds = 10
+const pwBytes = 64
+const jwtSecret = "djfudnsqlalfKeyFmfRkwu"
+
 const firebaseToken = 'fV0vRpDpTfCnY_VggFEgN7:APA91bHdHP6ilBpe9Wos5Y72SXFka2uAM3luANewGuw7Bx2XGnvUNjK5e5k945xwcXpW8NNei3LEaBtKT2_2A6naix8Wg5heVik8O2Aop_fu8bUibnGxuCe3RLQDtHNrMeC5gmgGRoVh';
 const fcmServerKey = "AAAA35TttWk:APA91bGLGZjdD2fgaPRh8eYyu9CDSndD97ZdO4MBypbpICClEwMADAJnt2giOaCWRvMldof5DkplMptbmyN0Fm0Q975dm-CD7i0XhrHzjgMN0EKfXHxLy4NyohEVXDHW5DBfYrlncvQh";
 firebase.initializeApp({
@@ -102,6 +107,35 @@ const categoryToNumber = (str) => {
     } else {
         return -1;
     }
+}
+const queryPromise = (table, sql, type) => {
+
+    return new Promise(async (resolve, reject) => {
+        await db.query(sql, (err, result, fields) => {
+            if (err) {
+                console.log(sql)
+                console.log(err)
+                reject({
+                    code: -200,
+                    data: [],
+                    table: table
+                })
+            } else {
+                let type_ = type ?? 'list';
+                let result_ = undefined;
+                if (type_ == 'obj') {
+                    result_ = { ...result[0] };
+                } else {
+                    result_ = [...result];
+                }
+                resolve({
+                    code: 200,
+                    data: result_,
+                    table: table
+                })
+            }
+        })
+    })
 }
 const lowLevelException = {
     code: 403,
@@ -296,10 +330,35 @@ const returnMoment = () => {
     let moment = dateString + ' ' + timeString;
     return moment;
 }
+const makeHash = (pw_) => {
+
+    return new Promise(async (resolve, reject) => {
+        let pw = pw_;
+        if (!(typeof pw == 'string')) {
+            pw = pw.toString();
+        }
+        await crypto.pbkdf2(pw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
+            // bcrypt.hash(pw, salt, async (err, hash) => {
+            let hash = decoded.toString('base64');
+            if (err) {
+                reject({
+                    code: -200,
+                    data: undefined,
+                })
+            } else {
+                resolve({
+                    code: 200,
+                    data: hash,
+                })
+            }
+        })
+    })
+}
 module.exports = {
     checkLevel, lowLevelException, nullRequestParamsOrBody,
     logRequestResponse, logResponse, logRequest,
     getUserPKArrStrWithNewPK, isNotNullOrUndefined,
     namingImagesPath, getSQLnParams,
-    nullResponse, lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, tooMuchRequest
+    nullResponse, lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, tooMuchRequest,
+    queryPromise, makeHash
 }

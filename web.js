@@ -161,13 +161,13 @@ const resizeFile = async (path, filename) => {
 
 app.get('/api/item', async (req, res) => {
         try {
-                console.log(app.connectionsN)
                 // if (tooMuchRequest(app.connectionsN)) {
                 //          return response(req, res, -120, "접속자 수가 너무많아 지연되고있습니다.(잠시후 다시 시도 부탁드립니다.)", [])
                 //  }
                 let table = req.query.table ?? "user";
                 //console.log(table)
-                let pk = req.query.pk ?? 0;
+                const pk = req.query.pk ?? 0;
+
                 let whereStr = " WHERE pk=? ";
                 const decode = checkLevel(req.cookies.token, 0)
                 if ((!decode || decode?.user_level == -10) && table !== 'notice') {
@@ -179,9 +179,6 @@ app.get('/api/item', async (req, res) => {
 
                 let sql = `SELECT * FROM ${table}_table ` + whereStr;
 
-                if (table != "user" && table != "issue_category" && table != "feature_category" && table != "alarm"&& table != "popup") {
-                        sql = `SELECT ${table}_table.* , user_table.nickname, user_table.name FROM ${table}_table LEFT JOIN user_table ON ${table}_table.user_pk = user_table.pk WHERE ${table}_table.pk=? LIMIT 1`
-                }
                 if (req.query.views) {
                         db.query(`UPDATE ${table}_table SET views=views+1 WHERE pk=?`, [pk], (err, result_view) => {
                                 if (err) {
@@ -195,11 +192,7 @@ app.get('/api/item', async (req, res) => {
                                 console.log(err)
                                 return response(req, res, -200, "서버 에러 발생s", [])
                         } else {
-                                if (categoryToNumber(table) != -1) {
-                                        return response(req, res, 100, "success", result[0])
-                                } else {
-                                        return response(req, res, 100, "success", result[0])
-                                }
+                                return response(req, res, 100, "success", result[0])
                         }
                 })
 
@@ -267,5 +260,5 @@ app.get('/api/getvideocontent', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-        res.json({ message: `daogo Server is running on port ${req.secure ? HTTPS_PORT : HTTP_PORT}` });
+        res.json({ message: `Server is running on port ${req.secure ? HTTPS_PORT : HTTP_PORT}` });
 });
