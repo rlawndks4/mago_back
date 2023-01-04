@@ -60,8 +60,23 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_) => {
         order:order
     }
 }
+const myItemSqlJoinFormat = (schema, sql_, order_, page_sql_) => {
+    let sql = sql_;
+    let page_sql = page_sql_;
+    let order = order_;
+    if(schema=='subscribe'){
+        sql = ` SELECT ${schema}_table.*, user_table.nickname AS master_name, academy_category_table.title AS title FROM ${schema}_table`;
+        sql += ` LEFT JOIN user_table ON ${schema}_table.master_pk=user_table.pk `;
+        sql += ` LEFT JOIN academy_category_table ON ${schema}_table.academy_category_pk=academy_category_table.pk `;
+    }
+    return {
+        page_sql:page_sql,
+        sql:sql,
+        order:order
+    }
+}
 module.exports = {
-    listFormatBySchema, sqlJoinFormat
+    listFormatBySchema, sqlJoinFormat, myItemSqlJoinFormat
 };
 // const sqlJoinFormat = (schema, sql_, page_sql_) => {
 //     let sql = sql_;

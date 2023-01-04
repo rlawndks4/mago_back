@@ -317,8 +317,11 @@ function nullResponse(req, res) {
 function lowLevelResponse(req, res) {
     response(req, res, -200, "권한이 없습니다", [])
 }
-const returnMoment = () => {
+const returnMoment = (d) => {
     var today = new Date();
+    if(d){
+        today = d;
+    }
     var year = today.getFullYear();
     var month = ('0' + (today.getMonth() + 1)).slice(-2);
     var day = ('0' + today.getDate()).slice(-2);

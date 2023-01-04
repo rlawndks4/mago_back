@@ -33,7 +33,7 @@ const pwBytes = 64
 const jwtSecret = "djfudnsqlalfKeyFmfRkwu"
 const { format, formatDistance, formatRelative, subDays } = require('date-fns')
 const geolocation = require('geolocation')
-const { sqlJoinFormat, listFormatBySchema } = require('../format/formats')
+const { sqlJoinFormat, listFormatBySchema, myItemSqlJoinFormat } = require('../format/formats')
 const kakaoOpt = {
     clientId: '4a8d167fa07331905094e19aafb2dc47',
     redirectUri: 'http://172.30.1.19:8001/api/kakao/callback',
@@ -2278,7 +2278,10 @@ const getMyItems = async (req, res) => {
             data_length = await dbQueryList(`SELECT COUNT(*) FROM ${table}_table WHERE user_pk=${decode?.pk}`);
             data_length = data_length?.result[0]['COUNT(*)'];
         }
-        let sql = `SELECT * FROM ${table}_table WHERE user_pk=${decode?.pk} ORDER BY pk DESC ` + (page ? `LIMIT ${(page - 1) * page_cut}, ${(page) * page_cut}` : ``);
+        let sql = `SELECT * FROM ${table}_table WHERE user_pk=${decode?.pk} ORDER BY pk DESC ` ;
+        sql = await myItemSqlJoinFormat(table, sql).sql;
+        sql += (page ? `LIMIT ${(page - 1) * page_cut}, ${(page) * page_cut}` : ``)
+
         data = await dbQueryList(sql);
         data = data?.result;
         let maxPage = await makeMaxPage(data_length, page_cut);
@@ -2302,6 +2305,66 @@ const getMyItem = async (req, res) => {
         return response(req, res, 100, "success", data);
     } catch (err) {
         console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+function addDays(date, days) {
+    const clone = new Date(date);
+    clone.setDate(date.getDate() + days)
+    return clone;
+  }
+const onSubscribe = async (req, res) =>{
+    try {
+        const decode = checkLevel(req.cookies.token, 0)
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", []);
+        }
+        const {item_pk, type_num} = req.body;
+        let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item_pk} AND end_date >= '${returnMoment()}'`);
+        is_already_subscribe = is_already_subscribe?.result;
+        if(is_already_subscribe.length>0){
+            return response(req, res, -150, "현재 이용중인 구독상품 입니다.", []);
+        }
+        let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${item_pk}`);
+        item = item?.result[0];
+        if(!item?.pk){
+            return response(req, res, -150, "잘못된 구독상품 입니다.", []);
+        }
+        let master = await dbQueryList(`SELECT * FROM user_table WHERE pk=${item?.master_pk}`);
+        master = master?.result[0];
+        let today = new Date();
+        let period = addDays(today, item?.period);
+        period = returnMoment(period);
+        await db.beginTransaction();
+        let keys = ['user_pk','master_pk','academy_category_pk','end_date','status'];
+        let keys_q = [];
+        for(var i = 0;i<keys.length;i++){
+            keys_q.push('?');
+        }
+        let values = [decode?.pk,master?.pk, item?.pk, period, type_num];
+        if(type_num==1){
+            keys.push('price');
+            keys_q.push('?');
+            values.push((item?.price??0)*((100-item?.discount_percent)/100));
+        }
+        let result = insertQuery(`INSERT INTO subscribe_table (${keys.join()}) VALUES (${keys_q.join()})`,values);
+
+        await db.commit();
+        return response(req, res, 100, "success", []);
+
+    } catch (err) {
+        await db.rollback();
+        console.log(err);
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+
+const updateSubscribe =async (req, res) =>{
+    try{
+
+    }catch (err) {
+        await db.rollback();
+        console.log(err);
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
@@ -2572,5 +2635,5 @@ module.exports = {
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
-    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem
+    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, onSubscribe, updateSubscribe,
 };
