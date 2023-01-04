@@ -4,9 +4,9 @@ const { upload } = require('../config/multerConfig')
 const {
     onLoginById, getUserToken, onLogout, checkExistId, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns,//auth
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
-    addMaster, onSignUp, addOneWord, addOneEvent, addItem, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
+    addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
-    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems
+    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem
 } = require('./api')
 const image_list = [
     { name: 'master' },
@@ -48,6 +48,7 @@ router.get('/users', getUsers);
 router.post('/addoneword', upload.single('content'), addOneWord);
 router.post('/addoneevent', upload.single('content'), addOneEvent);
 router.post('/additem', upload.fields([{ name: 'content' }, { name: 'content2' }]), addItem);
+router.post('/additembyuser', upload.fields([{ name: 'content' }, { name: 'content2' }]), addItemByUser);
 router.post('/updateitem', upload.fields([{ name: 'content' }, { name: 'content2' }]), updateItem);
 router.post('/addvideo', addVideo);
 router.post('/updatevideo', updateVideo);
@@ -67,6 +68,7 @@ router.get('/oneevent', getOneEvent);
 router.get('/items', getItems);
 router.post('/items', getItems);
 router.post('/myitems', getMyItems);
+router.post('/myitem', getMyItem);
 router.get('/getallposts', getAllPosts);
 router.get('/getuserstatistics', getUserStatistics);
 router.get('/itemcount', itemCount);

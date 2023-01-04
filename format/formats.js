@@ -41,6 +41,18 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_) => {
         sql = ` SELECT academy_category_table.*, user_table.nickname AS master_nickname FROM academy_category_table`;
         sql += ` LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk `;
         order = 'academy_category_table.sort'
+    }else if(schema=='notice'){
+        sql = ` SELECT notice_table.*, user_table.nickname AS nickname FROM notice_table`;
+        sql += ` LEFT JOIN user_table ON notice_table.user_pk=user_table.pk `;
+        order = 'notice_table.sort'
+    }else if(schema=='request'){
+        sql = ` SELECT request_table.*, user_table.nickname AS nickname, user_table.id AS id FROM request_table`;
+        sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
+        order = 'pk'
+    }else if(schema=='comment'){
+        sql = ` SELECT comment_table.*, user_table.nickname AS nickname, user_table.id AS id FROM comment_table`;
+        sql += ` LEFT JOIN user_table ON comment_table.user_pk=user_table.pk `;
+        order = 'pk'
     }
     return {
         page_sql:page_sql,

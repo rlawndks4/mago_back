@@ -959,12 +959,12 @@ const getHomeContent = async (req, res) => {
     try {
         let result_list = [];
         let sql_list = [
-            {table:'banner',sql:'SELECT home_banner_img_1,home_banner_img_2,home_banner_img_3,home_banner_img_4,home_banner_img_5 FROM setting_table ORDER BY pk DESC LIMIT 1',type:'obj'},
-            {table:'main_content',sql:'SELECT home_main_title,home_main_sub_title,home_main_link,home_main_img FROM setting_table ORDER BY pk DESC LIMIT 1',type:'obj'},
-            {table:'best_academy',sql:'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4',type:'list'},
-            {table:'best_comment',sql:'SELECT * FROM comment_table WHERE is_best=1 AND category_pk=1 ORDER BY pk DESC LIMIT 4',type:'list'},
-            {table:'notice',sql:'SELECT notice_table.*, user_table.nickname FROM notice_table LEFT JOIN user_table ON notice_table.user_pk=user_table.pk WHERE notice_table.status=1 ORDER BY notice_table.sort DESC LIMIT 7',type:'list'},
-            {table:'app',sql:'SELECT * FROM app_table WHERE status=1 ORDER BY sort DESC',type:'list'},
+            { table: 'banner', sql: 'SELECT home_banner_img_1,home_banner_img_2,home_banner_img_3,home_banner_img_4,home_banner_img_5 FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
+            { table: 'main_content', sql: 'SELECT home_main_title,home_main_sub_title,home_main_link,home_main_img FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
+            { table: 'best_academy', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4', type: 'list' },
+            { table: 'best_comment', sql: 'SELECT * FROM comment_table WHERE is_best=1 AND category_pk=1 ORDER BY pk DESC LIMIT 4', type: 'list' },
+            { table: 'notice', sql: 'SELECT notice_table.*, user_table.nickname FROM notice_table LEFT JOIN user_table ON notice_table.user_pk=user_table.pk WHERE notice_table.status=1 ORDER BY notice_table.sort DESC LIMIT 7', type: 'list' },
+            { table: 'app', sql: 'SELECT * FROM app_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
         ];
 
         for (var i = 0; i < sql_list.length; i++) {
@@ -995,8 +995,8 @@ const getAcademyList = async (req, res) => {
     try {
         let result_list = [];
         let sql_list = [
-            {table:'academy',sql:'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4',type:'list'},
-            {table:'master',sql:'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC',type:'list'},
+            { table: 'academy', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4', type: 'list' },
+            { table: 'master', sql: 'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC', type: 'list' },
         ];
 
         for (var i = 0; i < sql_list.length; i++) {
@@ -1027,9 +1027,9 @@ const getEnrolmentList = async (req, res) => {
     try {
         let result_list = [];
         let sql_list = [
-            {table:'banner',sql:'SELECT enrolment_banner_img_1,enrolment_banner_img_2,enrolment_banner_img_3,enrolment_banner_img_4,enrolment_banner_img_5, enrolment_bottom_banner FROM setting_table ORDER BY pk DESC LIMIT 1',type:'obj'},
-            {table:'best_academy',sql:'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4',type:'list'},
-            {table:'master',sql:'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC',type:'list'},
+            { table: 'banner', sql: 'SELECT enrolment_banner_img_1,enrolment_banner_img_2,enrolment_banner_img_3,enrolment_banner_img_4,enrolment_banner_img_5, enrolment_bottom_banner FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
+            { table: 'best_academy', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4', type: 'list' },
+            { table: 'master', sql: 'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC', type: 'list' },
         ];
 
         for (var i = 0; i < sql_list.length; i++) {
@@ -1343,7 +1343,7 @@ const addItem = async (req, res) => {
         let values_str = "";
 
         for (var i = 0; i < keys.length; i++) {
-            if(keys[i]=='pw'){
+            if (keys[i] == 'pw') {
                 body[keys[i]] = await makeHash(body[keys[i]])?.data;
             }
             values.push(body[keys[i]]);
@@ -1352,7 +1352,7 @@ const addItem = async (req, res) => {
             }
             values_str += " ?";
         }
-        
+
         let files = { ...req.files };
         let files_keys = Object.keys(files);
         for (var i = 0; i < files_keys.length; i++) {
@@ -1363,7 +1363,7 @@ const addItem = async (req, res) => {
             values_str += ", ?"
         }
         let table = req.body.table;
-        if(table=='notice' || table=='faq'){
+        if (table == 'notice' || table == 'faq' || table == 'event') {
             keys.push('user_pk');
             values.push(decode?.pk);
             values_str += ", ?"
@@ -1382,7 +1382,65 @@ const addItem = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+const addItemByUser = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 0);
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        let permission_schema = ['request'];
+        if(!permission_schema.includes(req.body.table)){
+            return response(req, res, -150, "잘못된 접근입니다.", [])
+        }
+        let body = { ...req.body };
+        delete body['table'];
+        delete body['reason_correction'];
+        delete body['manager_note'];
+        let keys = Object.keys(body);
+        let values = [];
+        let values_str = "";
 
+        for (var i = 0; i < keys.length; i++) {
+            if (keys[i] == 'pw') {
+                body[keys[i]] = await makeHash(body[keys[i]])?.data;
+            }
+            values.push(body[keys[i]]);
+            if (i != 0) {
+                values_str += ",";
+            }
+            values_str += " ?";
+        }
+
+        let files = { ...req.files };
+        let files_keys = Object.keys(files);
+        for (var i = 0; i < files_keys.length; i++) {
+            values.push(
+                '/image/' + req.files[files_keys][0].fieldname + '/' + req.files[files_keys][0].filename
+            );
+            keys.push('img_src');
+            values_str += ", ?"
+        }
+        let table = req.body.table;
+        if (table == 'request') {
+            keys.push('user_pk');
+            values.push(decode?.pk);
+            values_str += ", ?"
+        }
+        let sql = `INSERT INTO ${table}_table (${keys.join()}) VALUES (${values_str}) `;
+        await db.beginTransaction();
+        let result = await insertQuery(sql, values);
+        console.log(result)
+        //let result2 = await insertQuery(`UPDATE ${table}_table SET sort=? WHERE pk=?`, [result?.result?.insertId, result?.result?.insertId]);
+
+        await db.commit();
+        return response(req, res, 200, "success", []);
+
+    } catch (err) {
+        await db.rollback();
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
 const updateItem = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 40);
@@ -1390,7 +1448,7 @@ const updateItem = async (req, res) => {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
         let body = { ...req.body };
-
+        let use_manager_pk = ['request'];
         delete body['table'];
         delete body['pk'];
         delete body['hash_list'];
@@ -1411,7 +1469,7 @@ const updateItem = async (req, res) => {
         }
 
         for (var i = 0; i < keys.length; i++) {
-            if(keys[i]=='pw' && body[keys[i]]){
+            if (keys[i] == 'pw' && body[keys[i]]) {
                 body[keys[i]] = await makeHash(body[keys[i]]);
             }
             values.push(body[keys[i]]);
@@ -1420,6 +1478,7 @@ const updateItem = async (req, res) => {
             }
             values_str += " ?";
         }
+        
         let files = { ...req.files };
         let files_keys = Object.keys(files);
         for (var i = 0; i < files_keys.length; i++) {
@@ -1430,6 +1489,14 @@ const updateItem = async (req, res) => {
             values_str += ", ?"
         }
         let table = req.body.table;
+        if(use_manager_pk.includes(table)){
+            values.push(decode?.pk);
+            if (i != 0) {
+                values_str += ",";
+            }
+            keys.push('manager_pk');
+            values_str += " ?";
+        }
         let sql = `UPDATE ${table}_table SET ${keys.join("=?,")}=? WHERE pk=?`;
         values.push(req.body.pk);
         await db.beginTransaction();
@@ -1624,13 +1691,13 @@ const getItem = async (req, res) => {
         if ((!decode || decode?.user_level == -10) && table != 'notice' && table != 'master') {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        if(table == 'master'){
+        if (table == 'master') {
             table = 'user'
         }
         let sql = "";
-        if(pk){
+        if (pk) {
             sql = `SELECT * FROM ${table}_table  WHERE pk=${pk} `;
-        }else{
+        } else {
             sql = `SELECT * FROM ${table}_table ORDER BY pk DESC LIMIT 1`;
         }
         if (req.query.views && pk) {
@@ -1827,8 +1894,8 @@ const addImageItems = (req, res) => {
         let result = [];
         for (var i = 0; i < files_keys.length; i++) {
             result.push({
-                key:files_keys[i],
-                filename:'/image/' + req.files[files_keys[i]][0].fieldname + '/' + req.files[files_keys[i]][0].filename
+                key: files_keys[i],
+                filename: '/image/' + req.files[files_keys[i]][0].fieldname + '/' + req.files[files_keys[i]][0].filename
             })
         }
         return response(req, res, 100, "success", result);
@@ -2149,7 +2216,7 @@ const getItems = async (req, res) => {
         if (!page_cut) {
             page_cut = 15;
         }
-       
+
         sql = await sqlJoinFormat(table, sql, order, pageSql).sql;
         pageSql = await sqlJoinFormat(table, sql, order, pageSql).page_sql;
         order = await sqlJoinFormat(table, sql, order, pageSql).order;
@@ -2168,7 +2235,7 @@ const getItems = async (req, res) => {
                     console.log(err)
                     return response(req, res, -200, "서버 에러 발생", [])
                 } else {
-                    await db.query(sql, async(err, result2) => {
+                    await db.query(sql, async (err, result2) => {
                         if (err) {
                             console.log(err)
                             return response(req, res, -200, "서버 에러 발생", [])
@@ -2182,7 +2249,7 @@ const getItems = async (req, res) => {
                 }
             })
         } else {
-            db.query(sql, async(err, result2) => {
+            db.query(sql, async (err, result2) => {
                 if (err) {
                     console.log(err)
                     return response(req, res, -200, "서버 에러 발생", [])
@@ -2198,23 +2265,42 @@ const getItems = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const getMyItems = async(req, res) =>{
-    try{
+const getMyItems = async (req, res) => {
+    try {
         const decode = checkLevel(req.cookies.token, 0)
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let {table, page, page_cut} = req.body;
+        let { table, page, page_cut } = req.body;
         let data = [];
         let data_length = 0;
-        if(page){
+        if (page) {
             data_length = await dbQueryList(`SELECT COUNT(*) FROM ${table}_table WHERE user_pk=${decode?.pk}`);
+            data_length = data_length?.result[0]['COUNT(*)'];
         }
-        let sql = `SELECT * FROM ${table}_table WHERE user_pk=${decode?.pk} ORDER BY pk DESC `+(page?`LIMIT ${(page-1)*page_cut}, ${(page)*page_cut}`:``);
+        let sql = `SELECT * FROM ${table}_table WHERE user_pk=${decode?.pk} ORDER BY pk DESC ` + (page ? `LIMIT ${(page - 1) * page_cut}, ${(page) * page_cut}` : ``);
         data = await dbQueryList(sql);
         data = data?.result;
-        return response(req, res, 100, "success", {maxPage:makeMaxPage(data_length, 10), data:data});
-    }catch (err) {
+        let maxPage = await makeMaxPage(data_length, page_cut);
+        return response(req, res, 100, "success", { maxPage: maxPage, data: data });
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+const getMyItem = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 0)
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        let { table, pk } = req.body;
+        let data = {};
+        let sql = `SELECT * FROM ${table}_table WHERE user_pk=${decode?.pk} AND pk=${pk}`;
+        data = await dbQueryList(sql);
+        data = data?.result[0];
+        return response(req, res, 100, "success", data);
+    } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
     }
@@ -2484,7 +2570,7 @@ const setCountNotReadNoti = async (req, res) => {
 module.exports = {
     onLoginById, getUserToken, onLogout, checkExistId, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns,//auth
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
-    addMaster, onSignUp, addOneWord, addOneEvent, addItem, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
+    addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
-    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems
+    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem
 };
