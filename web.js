@@ -195,7 +195,7 @@ app.get('/api/item', async (req, res) => {
                                 console.log(err)
                                 return response(req, res, -200, "서버 에러 발생s", []);
                         } else {
-                                if (table = 'academy' && decode?.user_level <= 0 && req.query.views) {
+                                if (table == 'academy' && decode?.user_level <= 0 && req.query.views) {
                                         let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND academy_category_pk=${result[0]?.category_pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
                                         is_exist = is_exist?.result;
 
