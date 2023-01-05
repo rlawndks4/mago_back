@@ -1093,7 +1093,7 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
         }else{
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let academy_list = await dbQueryList(`SELECT * FROM academy_table WHERE category_pk=${pk} ORDER BY sort DESC `);
+        let academy_list = await dbQueryList(`SELECT academy_table.*, user_table.nickname AS nickname FROM academy_table LEFT JOIN user_table ON academy_table.master_pk=user_table.pk WHERE academy_table.category_pk=${pk} AND academy_table.status=1 ORDER BY academy_table.sort DESC `);
         academy_list = academy_list?.result;
         return response(req, res, 100, "success", academy_list);
     } catch (err) {

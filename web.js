@@ -170,10 +170,10 @@ app.get('/api/item', async (req, res) => {
 
                 let whereStr = " WHERE pk=? ";
                 const decode = checkLevel(req.cookies.token, 0)
-                if ((!decode || decode?.user_level == -10) && table !== 'notice'&& table !== 'master') {
+                if ((!decode || decode?.user_level == -10) && table !== 'notice' && table !== 'master') {
                         return response(req, res, -150, "권한이 없습니다.", []);
                 }
-                if(table=='master'){
+                if (table == 'master') {
                         table = 'user';
                 }
                 if (table == "setting") {
@@ -190,11 +190,20 @@ app.get('/api/item', async (req, res) => {
                                 }
                         })
                 }
-                db.query(sql, [pk], (err, result) => {
+                db.query(sql, [pk], async (err, result) => {
                         if (err) {
                                 console.log(err)
                                 return response(req, res, -200, "서버 에러 발생s", []);
                         } else {
+                                if (table = 'academy' && decode?.user_level <= 0 && req.query.views) {
+                                        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND academy_category_pk=${result[0]?.category_pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
+                                        is_exist = is_exist?.result;
+
+                                        if (is_exist.length > 0) {
+                                        } else {
+                                                return response(req, res, -150, "권한이 없습니다.", [])
+                                        }
+                                }
                                 return response(req, res, 100, "success", result[0]);
                         }
                 })
