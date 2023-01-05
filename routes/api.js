@@ -1059,6 +1059,48 @@ const getMyAcademyClasses = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+const getMyAcademyClass = async (req, res) => {//강의실 입성시 구독여부 확인 후 전송
+    try {
+        const decode = checkLevel(req.cookies.token, 0)
+        if (!decode) {
+            return response(req, res, -150, "로그인 후 이용 가능합니다.", [])
+        }
+        const {pk} = req.body;
+        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND academy_category_pk=${pk} AND end_date>=? ORDER BY pk DESC`,[returnMoment()]);
+        is_exist = is_exist?.result;
+        if(is_exist.length>0){
+        }else{
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        let academy_category = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${pk}`);
+        academy_category = academy_category?.result[0];
+        return response(req, res, 100, "success", academy_category);
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 구독여부 확인 후 전송
+    try {
+        const decode = checkLevel(req.cookies.token, 0)
+        if (!decode) {
+            return response(req, res, -150, "로그인 후 이용 가능합니다.", [])
+        }
+        const {pk} = req.body;
+        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND academy_category_pk=${pk} AND end_date>=? ORDER BY pk DESC`,[returnMoment()]);
+        is_exist = is_exist?.result;
+        if(is_exist.length>0){
+        }else{
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        let academy_list = await dbQueryList(`SELECT * FROM academy_table WHERE category_pk=${pk} ORDER BY sort DESC `);
+        academy_list = academy_list?.result;
+        return response(req, res, 100, "success", academy_list);
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
 const getEnrolmentList = async (req, res) => {
     try {
         let result_list = [];
@@ -2685,5 +2727,5 @@ module.exports = {
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
-    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, onSubscribe, updateSubscribe, getMyAcademyClasses
+    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList
 };
