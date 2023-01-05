@@ -20,9 +20,9 @@ const dbQueryRows = (sql) => {
         })
     })
 }
-const dbQueryList = (sql) => {
+const dbQueryList = (sql,list) => {
     return new Promise((resolve, reject) => {
-        db.query(sql, (err, result, fields) => {
+        db.query(sql,[list], (err, result, fields) => {
             if (err) {
                 console.log(sql)
                 console.log(err)

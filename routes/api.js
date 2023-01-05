@@ -993,9 +993,19 @@ const getHomeContent = async (req, res) => {
 }
 const getAcademyList = async (req, res) => {
     try {
+        const decode = checkLevel(req.cookies.token, 0)
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=?  ORDER BY pk DESC`,[returnMoment()]);
+        my_enrolment_list = my_enrolment_list?.result;
+        let academy_pk_list = my_enrolment_list.map((item)=>{
+            return item?.academy_category_pk
+        })
         let result_list = [];
+
         let sql_list = [
-            { table: 'academy', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4', type: 'list' },
+            { table: 'academy', sql: `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ${academy_pk_list.length>0?`AND academy_category_table.pk IN (${academy_pk_list.join()})`:'AND 1=2'}  `, type: 'list' },
             { table: 'master', sql: 'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC', type: 'list' },
         ];
 
@@ -1018,6 +1028,32 @@ const getAcademyList = async (req, res) => {
         }
         return response(req, res, 100, "success", result_obj)
 
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+
+const getMyAcademyClasses = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 0)
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        let select_master_pk_list = req.body.list??[];
+        console.log(select_master_pk_list)
+        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=? ORDER BY pk DESC`,[returnMoment()]);
+        my_enrolment_list = my_enrolment_list?.result;
+
+        let academy_pk_list = [];
+        for(var i = 0;i<my_enrolment_list.length;i++){      
+            if(select_master_pk_list.includes(my_enrolment_list[i]?.master_pk)){
+                academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
+            }      
+        }
+        let academy_list = await dbQueryList(`SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ${academy_pk_list.length>0?`AND academy_category_table.pk IN (${academy_pk_list.join()})`:'AND 1=2'}  `)
+        academy_list = academy_list?.result;
+        return response(req, res, 100, "success", academy_list);
     } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
@@ -1389,7 +1425,7 @@ const addItemByUser = async (req, res) => {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
         let permission_schema = ['request'];
-        if(!permission_schema.includes(req.body.table)){
+        if (!permission_schema.includes(req.body.table)) {
             return response(req, res, -150, "잘못된 접근입니다.", [])
         }
         let body = { ...req.body };
@@ -1478,7 +1514,7 @@ const updateItem = async (req, res) => {
             }
             values_str += " ?";
         }
-        
+
         let files = { ...req.files };
         let files_keys = Object.keys(files);
         for (var i = 0; i < files_keys.length; i++) {
@@ -1489,7 +1525,7 @@ const updateItem = async (req, res) => {
             values_str += ", ?"
         }
         let table = req.body.table;
-        if(use_manager_pk.includes(table)){
+        if (use_manager_pk.includes(table)) {
             values.push(decode?.pk);
             if (i != 0) {
                 values_str += ",";
@@ -2185,7 +2221,7 @@ const getOneEvent = (req, res) => {
 }
 const getItems = async (req, res) => {
     try {
-        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
+        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
         let sql = `SELECT * FROM ${table}_table `;
         console.log(req.body)
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
@@ -2205,6 +2241,9 @@ const getItems = async (req, res) => {
         }
         if (master_pk) {
             whereStr += ` AND ${table}_table.master_pk=${master_pk} `;
+        }
+        if (difficulty) {
+            whereStr += ` AND ${table}_table.difficulty=${difficulty} `;
         }
         if (keyword) {
             if (table == 'comment') {
@@ -2229,7 +2268,6 @@ const getItems = async (req, res) => {
         }
         if (page) {
             sql += ` LIMIT ${(page - 1) * page_cut}, ${page_cut}`;
-            console.log(sql)
             db.query(pageSql, async (err, result1) => {
                 if (err) {
                     console.log(err)
@@ -2278,7 +2316,7 @@ const getMyItems = async (req, res) => {
             data_length = await dbQueryList(`SELECT COUNT(*) FROM ${table}_table WHERE user_pk=${decode?.pk}`);
             data_length = data_length?.result[0]['COUNT(*)'];
         }
-        let sql = `SELECT * FROM ${table}_table WHERE user_pk=${decode?.pk} ORDER BY pk DESC ` ;
+        let sql = `SELECT * FROM ${table}_table WHERE user_pk=${decode?.pk} ORDER BY pk DESC `;
         sql = await myItemSqlJoinFormat(table, sql).sql;
         sql += (page ? `LIMIT ${(page - 1) * page_cut}, ${(page) * page_cut}` : ``)
 
@@ -2291,6 +2329,7 @@ const getMyItems = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+
 const getMyItem = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0)
@@ -2312,22 +2351,31 @@ function addDays(date, days) {
     const clone = new Date(date);
     clone.setDate(date.getDate() + days)
     return clone;
-  }
-const onSubscribe = async (req, res) =>{
+}
+const onSubscribe = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0)
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", []);
         }
-        const {item_pk, type_num} = req.body;
+        let { item_pk, type_num, bag_pk } = req.body;
+
+        let bag_content = {};
+        if (bag_pk) {
+            bag_content = await dbQueryList(`SELECT * FROM subscribe_table WHERE pk=${bag_pk}`);
+            bag_content = bag_content?.result[0];
+            item_pk = bag_content?.academy_category_pk;
+            type_num = 1;
+        }
+
         let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item_pk} AND end_date >= '${returnMoment()}'`);
         is_already_subscribe = is_already_subscribe?.result;
-        if(is_already_subscribe.length>0){
+        if (is_already_subscribe.length > 0) {
             return response(req, res, -150, "현재 이용중인 구독상품 입니다.", []);
         }
         let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${item_pk}`);
         item = item?.result[0];
-        if(!item?.pk){
+        if (!item?.pk) {
             return response(req, res, -150, "잘못된 구독상품 입니다.", []);
         }
         let master = await dbQueryList(`SELECT * FROM user_table WHERE pk=${item?.master_pk}`);
@@ -2336,19 +2384,21 @@ const onSubscribe = async (req, res) =>{
         let period = addDays(today, item?.period);
         period = returnMoment(period);
         await db.beginTransaction();
-        let keys = ['user_pk','master_pk','academy_category_pk','end_date','status'];
+        let keys = ['user_pk', 'master_pk', 'academy_category_pk', 'end_date', 'status'];
         let keys_q = [];
-        for(var i = 0;i<keys.length;i++){
+        for (var i = 0; i < keys.length; i++) {
             keys_q.push('?');
         }
-        let values = [decode?.pk,master?.pk, item?.pk, period, type_num];
-        if(type_num==1){
+        let values = [decode?.pk, master?.pk, item?.pk, period, type_num];
+        if (type_num == 1) {
             keys.push('price');
             keys_q.push('?');
-            values.push((item?.price??0)*((100-item?.discount_percent)/100));
+            values.push((item?.price ?? 0) * ((100 - item?.discount_percent) / 100));
         }
-        let result = insertQuery(`INSERT INTO subscribe_table (${keys.join()}) VALUES (${keys_q.join()})`,values);
-
+        let result = insertQuery(`INSERT INTO subscribe_table (${keys.join()}) VALUES (${keys_q.join()})`, values);
+        if (bag_pk) {
+            let result2 = insertQuery(`DELETE FROM subscribe_table WHERE pk=?`, [bag_pk])
+        }
         await db.commit();
         return response(req, res, 100, "success", []);
 
@@ -2359,10 +2409,10 @@ const onSubscribe = async (req, res) =>{
     }
 }
 
-const updateSubscribe =async (req, res) =>{
-    try{
+const updateSubscribe = async (req, res) => {
+    try {
 
-    }catch (err) {
+    } catch (err) {
         await db.rollback();
         console.log(err);
         return response(req, res, -200, "서버 에러 발생", [])
@@ -2635,5 +2685,5 @@ module.exports = {
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
-    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, onSubscribe, updateSubscribe,
+    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, onSubscribe, updateSubscribe, getMyAcademyClasses
 };
