@@ -167,7 +167,7 @@ app.get('/api/item', async (req, res) => {
                 let table = req.query.table ?? "user";
                 //console.log(table)
                 const pk = req.query.pk ?? 0;
-                const permission_list = ['setting','notice','master'];
+                const permission_list = ['setting','notice','master','academy_category'];
                 let whereStr = " WHERE pk=? ";
                 const decode = checkLevel(req.cookies.token, 0)
                 if ((!decode || decode?.user_level == -10) && !permission_list.includes(table)) {

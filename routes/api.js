@@ -1148,6 +1148,7 @@ const getEnrolmentList = async (req, res) => {
             { table: 'banner', sql: 'SELECT enrolment_banner_img_1,enrolment_banner_img_2,enrolment_banner_img_3,enrolment_banner_img_4,enrolment_banner_img_5, enrolment_bottom_banner FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'best_academy', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4', type: 'list' },
             { table: 'master', sql: 'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC', type: 'list' },
+            { table: 'contents', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ORDER BY academy_category_table.sort DESC', type: 'list' },
         ];
 
         for (var i = 0; i < sql_list.length; i++) {
@@ -2438,7 +2439,7 @@ const onSubscribe = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0)
         if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", []);
+            return response(req, res, -150, "회원전용 메뉴입니다.", []);
         }
         let { item_pk, type_num, bag_pk } = req.body;
 
@@ -2453,12 +2454,12 @@ const onSubscribe = async (req, res) => {
         let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item_pk} AND end_date >= '${returnMoment()}'`);
         is_already_subscribe = is_already_subscribe?.result;
         if (is_already_subscribe.length > 0) {
-            return response(req, res, -150, "현재 이용중인 구독상품 입니다.", []);
+            return response(req, res, -100, "현재 이용중인 구독상품 입니다.", []);
         }
         let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${item_pk}`);
         item = item?.result[0];
         if (!item?.pk) {
-            return response(req, res, -150, "잘못된 구독상품 입니다.", []);
+            return response(req, res, -100, "잘못된 구독상품 입니다.", []);
         }
         let master = await dbQueryList(`SELECT * FROM user_table WHERE pk=${item?.master_pk}`);
         master = master?.result[0];
