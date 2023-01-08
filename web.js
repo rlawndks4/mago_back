@@ -167,10 +167,10 @@ app.get('/api/item', async (req, res) => {
                 let table = req.query.table ?? "user";
                 //console.log(table)
                 const pk = req.query.pk ?? 0;
-
+                const permission_list = ['setting','notice','master'];
                 let whereStr = " WHERE pk=? ";
                 const decode = checkLevel(req.cookies.token, 0)
-                if ((!decode || decode?.user_level == -10) && table !== 'notice' && table !== 'master') {
+                if ((!decode || decode?.user_level == -10) && !permission_list.includes(table)) {
                         return response(req, res, -150, "권한이 없습니다.", []);
                 }
                 if (table == 'master') {

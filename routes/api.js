@@ -131,6 +131,9 @@ const onSignUp = async (req, res) => {
         const name = req.body.name ?? "";
         const nickname = req.body.nickname ?? "";
         const phone = req.body.phone ?? "";
+        const address = req.body.address ?? "";
+        const address_detail = req.body.address_detail ?? 0;
+        const zip_code = req.body.zip_code ?? 0;
         const user_level = req.body.user_level ?? 0;
         const type_num = req.body.type_num ?? 0;
         const profile_img = req.body.profile_img ?? "";
@@ -176,8 +179,8 @@ const onSignUp = async (req, res) => {
                                     return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
                                 }
 
-                                sql = 'INSERT INTO user_table (id, pw, name, nickname , phone, user_level, type, profile_img) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-                                await db.query(sql, [id, hash, name, nickname, phone, user_level, type_num, profile_img], async (err, result) => {
+                                sql = 'INSERT INTO user_table (id, pw, name, nickname , phone, user_level, type, profile_img, address, address_detail, zip_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                                await db.query(sql, [id, hash, name, nickname, phone, user_level, type_num, profile_img, address, address_detail, zip_code], async (err, result) => {
 
                                     if (err) {
                                         console.log(err)
@@ -723,7 +726,12 @@ const updateUser = async (req, res) => {
         const name = req.body.name ?? "";
         const nickname = req.body.nickname ?? "";
         const phone = req.body.phone ?? "";
+        const address = req.body.address ?? "";
+        const address_detail = req.body.address_detail ?? "";
+        const zip_code = req.body.zip_code ?? "";
+
         const user_level = req.body.user_level ?? 0;
+
         const pk = req.body.pk ?? 0;
         if (pw) {
             await crypto.pbkdf2(pw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
@@ -743,7 +751,7 @@ const updateUser = async (req, res) => {
                 }
             })
         }
-        await db.query("UPDATE user_table SET id=?, name=?, nickname=?, phone=?, user_level=? WHERE pk=?", [id, name, nickname, phone, user_level, pk], (err, result) => {
+        await db.query("UPDATE user_table SET id=?, name=?, nickname=?, phone=?, user_level=?, address=?, address_detail=?, zip_code=? WHERE pk=?", [id, name, nickname, phone, user_level, address, address_detail, zip_code, pk], (err, result) => {
             if (err) {
                 console.log(err)
                 return response(req, res, -200, "서버에러발생", [])
@@ -959,7 +967,7 @@ const getHomeContent = async (req, res) => {
     try {
         let result_list = [];
         let sql_list = [
-            { table: 'banner', sql: 'SELECT home_banner_img_1,home_banner_img_2,home_banner_img_3,home_banner_img_4,home_banner_img_5 FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
+            { table: 'banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'main_content', sql: 'SELECT home_main_title,home_main_sub_title,home_main_link,home_main_img FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'best_academy', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4', type: 'list' },
             { table: 'best_comment', sql: 'SELECT * FROM comment_table WHERE is_best=1 AND category_pk=1 ORDER BY pk DESC LIMIT 4', type: 'list' },
@@ -997,15 +1005,15 @@ const getAcademyList = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=?  ORDER BY pk DESC`,[returnMoment()]);
+        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=?  ORDER BY pk DESC`, [returnMoment()]);
         my_enrolment_list = my_enrolment_list?.result;
-        let academy_pk_list = my_enrolment_list.map((item)=>{
+        let academy_pk_list = my_enrolment_list.map((item) => {
             return item?.academy_category_pk
         })
         let result_list = [];
 
         let sql_list = [
-            { table: 'academy', sql: `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ${academy_pk_list.length>0?`AND academy_category_table.pk IN (${academy_pk_list.join()})`:'AND 1=2'}  `, type: 'list' },
+            { table: 'academy', sql: `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ${academy_pk_list.length > 0 ? `AND academy_category_table.pk IN (${academy_pk_list.join()})` : 'AND 1=2'}  `, type: 'list' },
             { table: 'master', sql: 'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC', type: 'list' },
         ];
 
@@ -1040,18 +1048,18 @@ const getMyAcademyClasses = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let select_master_pk_list = req.body.list??[];
+        let select_master_pk_list = req.body.list ?? [];
         console.log(select_master_pk_list)
-        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=? ORDER BY pk DESC`,[returnMoment()]);
+        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
         my_enrolment_list = my_enrolment_list?.result;
 
         let academy_pk_list = [];
-        for(var i = 0;i<my_enrolment_list.length;i++){      
-            if(select_master_pk_list.includes(my_enrolment_list[i]?.master_pk)){
+        for (var i = 0; i < my_enrolment_list.length; i++) {
+            if (select_master_pk_list.includes(my_enrolment_list[i]?.master_pk)) {
                 academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
-            }      
+            }
         }
-        let academy_list = await dbQueryList(`SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ${academy_pk_list.length>0?`AND academy_category_table.pk IN (${academy_pk_list.join()})`:'AND 1=2'}  `)
+        let academy_list = await dbQueryList(`SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ${academy_pk_list.length > 0 ? `AND academy_category_table.pk IN (${academy_pk_list.join()})` : 'AND 1=2'}  `)
         academy_list = academy_list?.result;
         return response(req, res, 100, "success", academy_list);
     } catch (err) {
@@ -1065,11 +1073,11 @@ const getMyAcademyClass = async (req, res) => {//강의실 입성시 구독여�
         if (!decode) {
             return response(req, res, -150, "로그인 후 이용 가능합니다.", [])
         }
-        const {pk} = req.body;
-        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND academy_category_pk=${pk} AND end_date>=? ORDER BY pk DESC`,[returnMoment()]);
+        const { pk } = req.body;
+        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND academy_category_pk=${pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
         is_exist = is_exist?.result;
-        if(is_exist.length>0){
-        }else{
+        if (is_exist.length > 0) {
+        } else {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
         let academy_category = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${pk}`);
@@ -1086,11 +1094,11 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
         if (!decode) {
             return response(req, res, -150, "로그인 후 이용 가능합니다.", [])
         }
-        const {pk} = req.body;
-        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND academy_category_pk=${pk} AND end_date>=? ORDER BY pk DESC`,[returnMoment()]);
+        const { pk } = req.body;
+        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND academy_category_pk=${pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
         is_exist = is_exist?.result;
-        if(is_exist.length>0){
-        }else{
+        if (is_exist.length > 0) {
+        } else {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
         let academy_list = await dbQueryList(`SELECT academy_table.*, user_table.nickname AS nickname FROM academy_table LEFT JOIN user_table ON academy_table.master_pk=user_table.pk WHERE academy_table.category_pk=${pk} AND academy_table.status=1 ORDER BY academy_table.sort DESC `);
@@ -2437,9 +2445,11 @@ const onSubscribe = async (req, res) => {
             keys_q.push('?');
             values.push((item?.price ?? 0) * ((100 - item?.discount_percent) / 100));
         }
-        let result = insertQuery(`INSERT INTO subscribe_table (${keys.join()}) VALUES (${keys_q.join()})`, values);
+        let result = undefined;
         if (bag_pk) {
-            let result2 = insertQuery(`DELETE FROM subscribe_table WHERE pk=?`, [bag_pk])
+            result = insertQuery(`UPDATE subscribe_table SET status=1, price=? WHERE pk=?`, [((item?.price ?? 0) * ((100 - item?.discount_percent) / 100)), bag_pk])
+        }else{
+            result = insertQuery(`INSERT INTO subscribe_table (${keys.join()}) VALUES (${keys_q.join()})`, values);
         }
         await db.commit();
         return response(req, res, 100, "success", []);
