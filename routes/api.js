@@ -1037,11 +1037,12 @@ const getAcademyList = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=?  ORDER BY pk DESC`, [returnMoment()]);
+        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>='${returnMoment()}'  ORDER BY pk DESC`, );
         my_enrolment_list = my_enrolment_list?.result;
-        let academy_pk_list = my_enrolment_list.map((item) => {
-            return item?.academy_category_pk
-        })
+        let academy_pk_list = [];
+        for(var i =0 ;i<my_enrolment_list.length;i++){
+            academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
+        }
         let result_list = [];
 
         let sql_list = [
@@ -1080,17 +1081,22 @@ const getMyAcademyClasses = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let select_master_pk_list = req.body.list ?? [];
-        console.log(select_master_pk_list)
+        let master_pk = req.body.master_pk;
         let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
         my_enrolment_list = my_enrolment_list?.result;
-
         let academy_pk_list = [];
-        for (var i = 0; i < my_enrolment_list.length; i++) {
-            if (select_master_pk_list.includes(my_enrolment_list[i]?.master_pk)) {
+        if(master_pk){
+            for (var i = 0; i < my_enrolment_list.length; i++) {
+                if (master_pk == my_enrolment_list[i]?.master_pk) {
+                    academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
+                }
+            }
+        }else{
+            for (var i = 0; i < my_enrolment_list.length; i++) {
                 academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
             }
         }
+        
         let academy_list = await dbQueryList(`SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ${academy_pk_list.length > 0 ? `AND academy_category_table.pk IN (${academy_pk_list.join()})` : 'AND 1=2'}  `)
         academy_list = academy_list?.result;
         return response(req, res, 100, "success", academy_list);
@@ -1106,7 +1112,7 @@ const getMyAcademyClass = async (req, res) => {//강의실 입성시 구독여�
             return response(req, res, -150, "로그인 후 이용 가능합니다.", [])
         }
         const { pk } = req.body;
-        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND academy_category_pk=${pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
+        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND academy_category_pk=${pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
         is_exist = is_exist?.result;
         if (is_exist.length > 0) {
         } else {
@@ -1127,7 +1133,7 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
             return response(req, res, -150, "로그인 후 이용 가능합니다.", [])
         }
         const { pk } = req.body;
-        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND academy_category_pk=${pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
+        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND academy_category_pk=${pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
         is_exist = is_exist?.result;
         if (is_exist.length > 0) {
         } else {
@@ -1507,7 +1513,7 @@ const addItemByUser = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let permission_schema = ['request'];
+        let permission_schema = ['request','review'];
         if (!permission_schema.includes(req.body.table)) {
             return response(req, res, -150, "잘못된 접근입니다.", [])
         }
@@ -1540,11 +1546,15 @@ const addItemByUser = async (req, res) => {
             values_str += ", ?"
         }
         let table = req.body.table;
-        if (table == 'request') {
+        let use_user_pk = ['request','review'];
+        if (use_user_pk.includes(table)) {
             keys.push('user_pk');
             values.push(decode?.pk);
             values_str += ", ?"
         }
+        console.log(table)
+        console.log(keys)
+        console.log(values)
         let sql = `INSERT INTO ${table}_table (${keys.join()}) VALUES (${values_str}) `;
         await db.beginTransaction();
         let result = await insertQuery(sql, values);
