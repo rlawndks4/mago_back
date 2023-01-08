@@ -1011,7 +1011,7 @@ const getHeaderContent = async (req, res) =>{
         let sql_list = [
             { table: 'top_banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'popup', sql: 'SELECT * FROM popup_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
-            { table: 'master', sql: 'SELECT pk, nickname FROM user_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
+            { table: 'master', sql: 'SELECT pk, nickname, name FROM user_table WHERE user_level=30 AND status=1  ORDER BY sort DESC', type: 'list' },
         ];
         for (var i = 0; i < sql_list.length; i++) {
             result_list.push(queryPromise(sql_list[i]?.table, sql_list[i]?.sql));
@@ -1199,11 +1199,11 @@ const getMasterContent = async (req, res) =>{
         for(var i = 0;i<master_academies.length;i++){
             master_academy_pk.push(master_academies[i]?.pk);
         }
-        let review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:`1=2`}`);
+        let review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:` WHERE 1=2`}`);
         review_page =review_page?.result[0];
         review_page = review_page['COUNT(*)']??0;
         review_page = await makeMaxPage(review_page, page_cut);
-        let review_list = await dbQueryList(`SELECT review_table.*,academy_category_table.main_img AS main_img FROM review_table LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:`1=2`} ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut}`);
+        let review_list = await dbQueryList(`SELECT review_table.*,academy_category_table.main_img AS main_img FROM review_table LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:` WHERE 1=2`} ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut}`);
         review_list = review_list?.result??[];
         return response(req, res, 100, "success", {maxPage:review_page,review_list:review_list,master_content:master_content, academy:master_academies});
     }catch (err) {
