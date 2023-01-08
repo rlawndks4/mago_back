@@ -4,18 +4,6 @@ const listFormatBySchema = (schema, data_) => {
     let option_list = {};
     if (schema == 'academy_category') {
         option_list = {
-            period:[
-                { name: '1일', val: 1 },
-                { name: '3일', val: 3 },
-                { name: '1주일', val: 7 },
-                { name: '2주일', val: 14 },
-                { name: '3주일', val: 21 },
-                { name: '1개월', val: 30 },
-                { name: '2개월', val: 60 },
-                { name: '3개월', val: 90 },
-                { name: '6개월', val: 180 },
-                { name: '1년', val: 365 },
-            ],
             difficulty:[
                 { name: '왕초보', val: 1 },
                 { name: '검색기', val: 2 },
@@ -58,6 +46,11 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_) => {
         sql += ` LEFT JOIN user_table AS u_t ON subscribe_table.user_pk=u_t.pk `;
         sql += ` LEFT JOIN academy_category_table ON subscribe_table.academy_category_pk=academy_category_table.pk `;
         sql += ` LEFT JOIN user_table AS m_t ON subscribe_table.master_pk=m_t.pk `;
+        order = 'pk'
+    }else if(schema=='review'){
+        sql = ` SELECT review_table.*, user_table.nickname AS nickname, user_table.id AS id, academy_category_table.title AS item_title FROM review_table`;
+        sql += ` LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
+        sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
         order = 'pk'
     }
     return {

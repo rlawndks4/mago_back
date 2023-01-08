@@ -968,14 +968,20 @@ const getHomeContent = async (req, res) => {
         let result_list = [];
         let sql_list = [
             { table: 'banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
-            { table: 'main_content', sql: 'SELECT home_main_title,home_main_sub_title,home_main_link,home_main_img FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'best_academy', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4', type: 'list' },
             { table: 'best_comment', sql: 'SELECT * FROM comment_table WHERE is_best=1 AND category_pk=1 ORDER BY pk DESC LIMIT 4', type: 'list' },
             { table: 'notice', sql: 'SELECT notice_table.*, user_table.nickname FROM notice_table LEFT JOIN user_table ON notice_table.user_pk=user_table.pk WHERE notice_table.status=1 ORDER BY notice_table.sort DESC LIMIT 7', type: 'list' },
             { table: 'app', sql: 'SELECT * FROM app_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
+            { table: 'main_video', sql: 'SELECT * FROM main_video_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
+            { table: 'best_review', sql: '', type: 'list' },
         ];
 
         for (var i = 0; i < sql_list.length; i++) {
+            if(sql_list[i]?.table=='best_review'){
+                sql_list[i].sql = 'SELECT review_table.*, academy_category_table.main_img FROM review_table ';
+                sql_list[i].sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
+                sql_list[i].sql += ` WHERE review_table.is_best=1 ORDER BY pk DESC `;
+            }
             result_list.push(queryPromise(sql_list[i]?.table, sql_list[i]?.sql));
         }
         for (var i = 0; i < result_list.length; i++) {
@@ -1132,17 +1138,113 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
         if (!decode) {
             return response(req, res, -150, "로그인 후 이용 가능합니다.", [])
         }
-        const { pk } = req.body;
+        let { pk, page, page_cut } = req.body;
+        page_cut = 10;
         let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND academy_category_pk=${pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
         is_exist = is_exist?.result;
         if (is_exist.length > 0) {
         } else {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let academy_list = await dbQueryList(`SELECT academy_table.*, user_table.nickname AS nickname FROM academy_table LEFT JOIN user_table ON academy_table.master_pk=user_table.pk WHERE academy_table.category_pk=${pk} AND academy_table.status=1 ORDER BY academy_table.sort DESC `);
+        let academy_list_sql = `SELECT academy_table.*, user_table.nickname AS nickname FROM academy_table LEFT JOIN user_table ON academy_table.master_pk=user_table.pk WHERE academy_table.category_pk=${pk} AND academy_table.status=1 ORDER BY academy_table.sort DESC `
+        if(page){
+            academy_list_sql += ` LIMIT ${(page-1)*page_cut}, ${page*page_cut} `;
+        }
+        let academy_count = await dbQueryList(`SELECT COUNT(*) FROM academy_table WHERE category_pk=${pk} AND status=1 `);
+        academy_count = academy_count?.result[0];
+        academy_count = academy_count['COUNT(*)'];
+        let maxPage = await makeMaxPage(academy_count, page_cut);
+        let academy_list = await dbQueryList(academy_list_sql);
         academy_list = academy_list?.result;
-        return response(req, res, 100, "success", academy_list);
+        return response(req, res, 100, "success", {maxPage:maxPage,data:academy_list});
     } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+const getAcademyCategoryContent = async(req, res) =>{
+    try {
+        let {pk, page, page_cut} = req.query;
+        console.log(req.query)
+        let academy_content = undefined;
+        page_cut = 4;
+        if(page==1){
+            academy_content = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${pk}`);
+            academy_content = await academy_content?.result[0];
+        }
+        let review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table WHERE academy_category_pk=${pk}`);
+        review_page =review_page?.result[0];
+        review_page = review_page['COUNT(*)']??0;
+        review_page = await makeMaxPage(review_page, page_cut);
+        let review_list = await dbQueryList(`SELECT review_table.*,academy_category_table.main_img AS main_img FROM review_table LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk WHERE academy_category_pk=${pk} ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut}`);
+        review_list =review_list?.result;
+        return response(req, res, 100, "success", {maxPage:review_page,review_list:review_list,academy_content:academy_content});
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+const getMasterContent = async (req, res) =>{
+    try{
+        let {pk, page, page_cut} = req.query;
+        let master_content = undefined;
+        page_cut = 4;
+        if(page==1){
+            master_content = await dbQueryList(`SELECT * FROM user_table WHERE pk=${pk}`);
+            master_content = await master_content?.result[0];
+        }
+        let master_academies = await dbQueryList(`SELECT * FROM academy_category_table WHERE master_pk=${pk}`);
+        master_academies = master_academies?.result;
+        let master_academy_pk = [];
+        for(var i = 0;i<master_academies.length;i++){
+            master_academy_pk.push(master_academies[i]?.pk);
+        }
+        let review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:`1=2`}`);
+        review_page =review_page?.result[0];
+        review_page = review_page['COUNT(*)']??0;
+        review_page = await makeMaxPage(review_page, page_cut);
+        let review_list = await dbQueryList(`SELECT review_table.*,academy_category_table.main_img AS main_img FROM review_table LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:`1=2`} ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut}`);
+        review_list = review_list?.result??[];
+        return response(req, res, 100, "success", {maxPage:review_page,review_list:review_list,master_content:master_content, academy:master_academies});
+    }catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+const getReviewByMasterPk = async(req, res) =>{
+    try{
+        let {pk, page, page_cut} = req.query;
+        let master_content = undefined;
+        let master_academies = undefined;
+        let master_academy_pk = [];
+        let review_page = undefined;
+        let review_list = [];
+        page_cut = 5;
+        if(pk){
+            master_content = await dbQueryList(`SELECT * FROM user_table WHERE pk=${pk}`);
+            master_content = await master_content?.result[0];
+            master_academies = await dbQueryList(`SELECT * FROM academy_category_table WHERE master_pk=${pk}`);
+            master_academies = master_academies?.result;
+            master_academy_pk = [];
+            for(var i = 0;i<master_academies.length;i++){
+                master_academy_pk.push(master_academies[i]?.pk);
+            }
+            review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:`1=2`}`);
+            review_page =review_page?.result[0];
+            review_page = review_page['COUNT(*)']??0;
+            review_page = await makeMaxPage(review_page, page_cut);
+            review_list = await dbQueryList(`SELECT review_table.*,academy_category_table.main_img AS main_img FROM review_table LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:`1=2`} ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut}`);
+            review_list = review_list?.result??[];
+        }else{
+            review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table `);
+            review_page =review_page?.result[0];
+            review_page = review_page['COUNT(*)']??0;
+            review_page = await makeMaxPage(review_page, page_cut);
+            review_list = await dbQueryList(`SELECT review_table.*,academy_category_table.main_img AS main_img FROM review_table LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut}`);
+            review_list = review_list?.result??[];
+        }
+        return response(req, res, 100, "success", {maxPage:review_page,data:review_list});
+    }catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
     }
@@ -2471,6 +2573,9 @@ const onSubscribe = async (req, res) => {
         if (!item?.pk) {
             return response(req, res, -100, "잘못된 구독상품 입니다.", []);
         }
+        if(item?.is_deadline==1){
+            return response(req, res, -100, "마감된 상품 입니다.", []);
+        }
         let master = await dbQueryList(`SELECT * FROM user_table WHERE pk=${item?.master_pk}`);
         master = master?.result[0];
         let today = new Date();
@@ -2780,5 +2885,5 @@ module.exports = {
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
-    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent
+    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent, getAcademyCategoryContent, getMasterContent, getReviewByMasterPk
 };

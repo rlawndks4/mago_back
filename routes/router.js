@@ -6,7 +6,7 @@ const {
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
-    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent
+    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent, getAcademyCategoryContent, getMasterContent, getReviewByMasterPk
 } = require('./api')
 const image_list = [
     { name: 'master' },
@@ -79,6 +79,10 @@ router.get('/gethomecontent', getHomeContent);
 router.get('/getheadercontent', getHeaderContent);
 router.get('/getacademylist', getAcademyList);
 router.get('/getenrolmentlist', getEnrolmentList);
+router.get('/getacademycategorycontent', getAcademyCategoryContent);
+router.get('/getmastercontent', getMasterContent);
+router.get('/getreviewbymasterpk', getReviewByMasterPk);
+
 router.post('/updatesetting', upload.fields([{ name: 'content' }, { name: 'content2' }]), updateSetting);
 router.post('/addsetting', upload.single('master'), addSetting);
 router.get('/setting', getSetting);
