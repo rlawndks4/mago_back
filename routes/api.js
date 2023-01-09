@@ -998,6 +998,7 @@ const getHomeContent = async (req, res) => {
         for (var i = 0; i < (await result).length; i++) {
             result_obj[(await result[i])?.table] = (await result[i])?.data;
         }
+        console.log(result_obj['main_video'])
         return response(req, res, 100, "success", result_obj)
 
     } catch (err) {
@@ -1176,7 +1177,11 @@ const getAcademyCategoryContent = async(req, res) =>{
         review_page =review_page?.result[0];
         review_page = review_page['COUNT(*)']??0;
         review_page = await makeMaxPage(review_page, page_cut);
-        let review_list = await dbQueryList(`SELECT review_table.*,academy_category_table.main_img AS main_img FROM review_table LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk WHERE academy_category_pk=${pk} ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut}`);
+        let review_sql = ` SELECT review_table.*,academy_category_table.main_img AS main_img, user_table.nickname AS nickname FROM review_table `;
+        review_sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
+        review_sql += ` LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
+        review_sql += ` WHERE academy_category_pk=${pk} ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut} `;
+        let review_list = await dbQueryList(review_sql);
         review_list =review_list?.result;
         return response(req, res, 100, "success", {maxPage:review_page,review_list:review_list,academy_content:academy_content});
     } catch (err) {
@@ -1203,7 +1208,11 @@ const getMasterContent = async (req, res) =>{
         review_page =review_page?.result[0];
         review_page = review_page['COUNT(*)']??0;
         review_page = await makeMaxPage(review_page, page_cut);
-        let review_list = await dbQueryList(`SELECT review_table.*,academy_category_table.main_img AS main_img FROM review_table LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:` WHERE 1=2`} ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut}`);
+        let review_sql = ` SELECT review_table.*,academy_category_table.main_img AS main_img, user_table.nickname AS nickname FROM review_table `;
+        review_sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
+        review_sql += ` LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
+        review_sql += ` ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:` WHERE 1=2`} ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut} `;
+        let review_list = await dbQueryList(review_sql);
         review_list = review_list?.result??[];
         return response(req, res, 100, "success", {maxPage:review_page,review_list:review_list,master_content:master_content, academy:master_academies});
     }catch (err) {
@@ -1233,14 +1242,22 @@ const getReviewByMasterPk = async(req, res) =>{
             review_page =review_page?.result[0];
             review_page = review_page['COUNT(*)']??0;
             review_page = await makeMaxPage(review_page, page_cut);
-            review_list = await dbQueryList(`SELECT review_table.*,academy_category_table.main_img AS main_img FROM review_table LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:`1=2`} ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut}`);
+            let sql = ` SELECT review_table.*,academy_category_table.main_img AS main_img, user_table.nickname AS nickname FROM review_table `;
+            sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
+            sql += `LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
+            sql += ` ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:`1=2`} ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut} `
+            review_list = await dbQueryList(sql);
             review_list = review_list?.result??[];
         }else{
             review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table `);
             review_page =review_page?.result[0];
             review_page = review_page['COUNT(*)']??0;
             review_page = await makeMaxPage(review_page, page_cut);
-            review_list = await dbQueryList(`SELECT review_table.*,academy_category_table.main_img AS main_img FROM review_table LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut}`);
+            let sql = ` SELECT review_table.*,academy_category_table.main_img AS main_img, user_table.nickname AS nickname FROM review_table `;
+            sql += `LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
+            sql += `LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
+            sql += ` ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut} `;
+            review_list = await dbQueryList(sql);
             review_list = review_list?.result??[];
         }
         return response(req, res, 100, "success", {maxPage:review_page,data:review_list});
@@ -2507,12 +2524,14 @@ const getMyItems = async (req, res) => {
         let { table, page, page_cut } = req.body;
         let data = [];
         let data_length = 0;
+        console.log(decode?.pk)
         if (page) {
             data_length = await dbQueryList(`SELECT COUNT(*) FROM ${table}_table WHERE user_pk=${decode?.pk}`);
             data_length = data_length?.result[0]['COUNT(*)'];
         }
-        let sql = `SELECT * FROM ${table}_table WHERE user_pk=${decode?.pk} ORDER BY pk DESC `;
+        let sql = `SELECT * FROM ${table}_table `;
         sql = await myItemSqlJoinFormat(table, sql).sql;
+        sql += ` WHERE ${table}_table.user_pk=${decode?.pk} ORDER BY pk DESC `
         sql += (page ? `LIMIT ${(page - 1) * page_cut}, ${(page) * page_cut}` : ``)
 
         data = await dbQueryList(sql);
