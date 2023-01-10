@@ -3050,15 +3050,40 @@ const onKeyrecieve = async (req, res) => {
         }
         let body = { ...req.body };
         let params = { ...req.params };
+        if (body?.allat_result_cd != '0000') {
+            body.allat_result_msg.CharsSet = "euc-kr";
+            return res.send(`<script>parent.Allat_Mobile_Close(); parent.alert('${body?.allat_result_cd} : ${body?.allat_result_msg}'); window.location.href = '/';</script>`);
+        }
         let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${params?.pk}`);
         item = item?.result[0];
         let price = (item?.price ?? 0) * (100 - item?.discount_percent ?? 0) / 100;
-        console.log(price)
-        const result = await axios.post('https://divecebu.co.kr/divecebu/api/aynil/approval.php', { ...body, ...params, allat_amt: price });
-        console.log(result?.data);
-        return;
-        return res.send(`<script>parent.approval_submit('${body?.allat_result_cd}','${body?.allat_result_msg}','${body?.allat_enc_data}');</script>`);
+        let { data: response } = await axios.post('https://divecebu.co.kr/divecebu/api/aynil/approval.php', { ...body, ...params, allat_amt: price });
+        if (response?.result == '0000') {
+            let trade_date = response?.data?.approval_ymdhms;
+            trade_date = `${trade_date.slice(0, 4)}-${trade_date.slice(4, 6)}-${trade_date.slice(6, 8)} ${trade_date.slice(8, 10)}:${trade_date.slice(10, 12)}:${trade_date.slice(12, 14)}`;
+            let keys = {
+                price: response?.data?.amt,
+                status: 1,
+                user_pk: decode?.pk,
+                master_pk: item?.master_pk,
+                academy_category_pk: item?.pk,
+                end_date: item?.end_date,
+                card_num: "",
+                card_name: response?.data?.card_nm,
+                trade_date: trade_date,
+                installment: parseInt(response?.data?.sell_mm),
+                order_num: response?.data?.order_no,
+                approval_num: response?.data?.approval_no
+            };
+            await db.beginTransaction();
+            let insert_perchase_result = await insertQuery(`INSERT INTO subscribe_table (${Object.keys(keys).join()}) VALUES (${Object.keys(keys).map(() => { return "?" })})`, Object.values(keys))
+            await db.commit();
+            return res.send(`<script>parent.Allat_Mobile_Close(); alert('성공적으로 구매 되었습니다.'); window.location.href = '/mypage';</script>`);
+        } else {
+            return res.send(`<script>parent.Allat_Mobile_Close(); parent.alert('${response?.message}'); window.location.href = '/';</script>`);
+        }
     } catch (err) {
+        await db.rollback();
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", []);
     }
