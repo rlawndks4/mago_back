@@ -3064,30 +3064,30 @@ const onKeyrecieve = async (req, res) => {
         }
 
         let price = (item?.price ?? 0) * (100 - item?.discount_percent ?? 0) / 100;
-        let { data: response } = await axios.post('https://divecebu.co.kr/divecebu/api/aynil/approval.php', { ...body, ...params, allat_amt: price });
-        if (response?.result == '0000') {
-            let trade_date = response?.data?.approval_ymdhms;
+        let { data: resp } = await axios.post('https://divecebu.co.kr/divecebu/api/aynil/approval.php', { ...body, ...params, allat_amt: price });
+        if (resp?.result == '0000') {
+            let trade_date = resp?.data?.approval_ymdhms;
             trade_date = `${trade_date.slice(0, 4)}-${trade_date.slice(4, 6)}-${trade_date.slice(6, 8)} ${trade_date.slice(8, 10)}:${trade_date.slice(10, 12)}:${trade_date.slice(12, 14)}`;
             let keys = {
-                price: response?.data?.amt,
+                price: resp?.data?.amt,
                 status: 1,
                 user_pk: decode?.pk,
                 master_pk: item?.master_pk,
                 academy_category_pk: item?.pk,
                 end_date: item?.end_date,
                 card_num: "",
-                card_name: response?.data?.card_nm,
+                card_name: resp?.data?.card_nm,
                 trade_date: trade_date,
-                installment: parseInt(response?.data?.sell_mm),
-                order_num: response?.data?.order_no,
-                approval_num: response?.data?.approval_no
+                installment: parseInt(resp?.data?.sell_mm),
+                order_num: resp?.data?.order_no,
+                approval_num: resp?.data?.approval_no
             };
             await db.beginTransaction();
             let insert_perchase_result = await insertQuery(`INSERT INTO subscribe_table (${Object.keys(keys).join()}) VALUES (${Object.keys(keys).map(() => { return "?" })})`, Object.values(keys))
             await db.commit();
             return res.send(`<script>parent.Allat_Mobile_Close(); alert('성공적으로 구매 되었습니다.'); window.location.href = '/mypage';</script>`);
         } else {
-            return res.send(`<script>parent.Allat_Mobile_Close(); parent.alert('${response?.message}'); window.location.href = '/';</script>`);
+            return res.send(`<script>parent.Allat_Mobile_Close(); parent.alert('${resp?.message}'); window.location.href = '/';</script>`);
         }
     } catch (err) {
         await db.rollback();
