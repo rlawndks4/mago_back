@@ -12,7 +12,7 @@ const when = require('when')
 
 const { checkLevel, getSQLnParams, getUserPKArrStrWithNewPK,
     isNotNullOrUndefined, namingImagesPath, nullResponse,
-    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash
+    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber
 } = require('../util')
 const {
     getRowsNumWithKeyword, getRowsNum, getAllDatas,
@@ -1270,7 +1270,7 @@ const getEnrolmentList = async (req, res) => {
     try {
         let result_list = [];
         let sql_list = [
-            { table: 'banner', sql: 'SELECT enrolment_banner_img_1,enrolment_banner_img_2,enrolment_banner_img_3,enrolment_banner_img_4,enrolment_banner_img_5, enrolment_bottom_banner FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
+            { table: 'banner', sql: 'SELECT enrolment_banner_img_1,enrolment_banner_img_2,enrolment_banner_img_3,enrolment_banner_img_4,enrolment_banner_img_5, enrolment_bottom_banner,enrolment_banner_link_1,enrolment_banner_link_2,enrolment_banner_link_3,enrolment_banner_link_4,enrolment_banner_link_5 FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'best_academy', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4', type: 'list' },
             { table: 'master', sql: 'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC', type: 'list' },
             { table: 'contents', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ORDER BY academy_category_table.sort DESC', type: 'list' },
@@ -2431,11 +2431,22 @@ const getOneEvent = (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+const getOptionObjBySchema = async (schema, whereStr) =>{
+    let obj = {};
+    if(schema=='subscribe'){
+        let option = await dbQueryList(`SELECT COUNT(*) AS people_num, SUM(price) AS sum_price FROM ${schema}_table ${whereStr}`);
+        option = option?.result[0];
+        obj = {
+            people_num:{title:'총 수강인원',content:commarNumber(option?.people_num??0)},
+            sum_price:{title:'총 결제금액',content:commarNumber(option?.sum_price??0)}
+        }
+    }
+    return obj;
+}
 const getItems = async (req, res) => {
     try {
-        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
+        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
         let sql = `SELECT * FROM ${table}_table `;
-        console.log(req.body)
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
 
         let whereStr = " WHERE 1=1 ";
@@ -2454,6 +2465,9 @@ const getItems = async (req, res) => {
         if (master_pk) {
             whereStr += ` AND ${table}_table.master_pk=${master_pk} `;
         }
+        if (academy_category_pk) {
+            whereStr += ` AND ${table}_table.academy_category_pk=${academy_category_pk} `;
+        }
         if (difficulty) {
             whereStr += ` AND ${table}_table.difficulty=${difficulty} `;
         }
@@ -2471,7 +2485,6 @@ const getItems = async (req, res) => {
         sql = await sqlJoinFormat(table, sql, order, pageSql).sql;
         pageSql = await sqlJoinFormat(table, sql, order, pageSql).page_sql;
         order = await sqlJoinFormat(table, sql, order, pageSql).order;
-
         pageSql = pageSql + whereStr;
 
         sql = sql + whereStr + ` ORDER BY ${order ? order : 'sort'} DESC `;
@@ -2493,7 +2506,8 @@ const getItems = async (req, res) => {
                             let result = [...result2];
                             result = await listFormatBySchema(table, result);
                             let maxPage = result1[0]['COUNT(*)'] % page_cut == 0 ? (result1[0]['COUNT(*)'] / page_cut) : ((result1[0]['COUNT(*)'] - result1[0]['COUNT(*)'] % page_cut) / page_cut + 1);
-                            return response(req, res, 100, "success", { data: result2, maxPage: maxPage });
+                            let option_obj = await getOptionObjBySchema(table, whereStr);
+                            return response(req, res, 100, "success", { data: result2, maxPage: maxPage, option_obj:option_obj });
                         }
                     })
                 }

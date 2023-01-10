@@ -42,7 +42,7 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_) => {
         sql += ` LEFT JOIN user_table ON comment_table.user_pk=user_table.pk `;
         order = 'pk'
     }else if(schema=='subscribe'){
-        sql = ` SELECT subscribe_table.*, u_t.nickname AS nickname, u_t.id AS id, academy_category_table.title AS title, m_t.nickname AS master_nickname FROM subscribe_table`;
+        sql = ` SELECT subscribe_table.*, u_t.nickname AS nickname, u_t.id AS id, academy_category_table.title AS title, academy_category_table.end_date AS end_date, m_t.nickname AS master_nickname FROM subscribe_table`;
         sql += ` LEFT JOIN user_table AS u_t ON subscribe_table.user_pk=u_t.pk `;
         sql += ` LEFT JOIN academy_category_table ON subscribe_table.academy_category_pk=academy_category_table.pk `;
         sql += ` LEFT JOIN user_table AS m_t ON subscribe_table.master_pk=m_t.pk `;

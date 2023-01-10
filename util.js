@@ -357,11 +357,30 @@ const makeHash = (pw_) => {
         })
     })
 }
+const commarNumber = (num) => {
+    let str = "";
+    if (typeof num == "number") {
+        str = num.toString();
+    } else {
+        str = num;
+    }
+    if(!str){
+        return "---";
+    }
+    let result = "";
+    let count = 0;
+    for (var i = str.length - 1; i >= 0; i--) {
+        if (count % 3 == 0 && count != 0) result = "," + result;
+        result = str[i] + result;
+        count++;
+    }
+    return result;
+}
 module.exports = {
     checkLevel, lowLevelException, nullRequestParamsOrBody,
     logRequestResponse, logResponse, logRequest,
     getUserPKArrStrWithNewPK, isNotNullOrUndefined,
     namingImagesPath, getSQLnParams,
     nullResponse, lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, tooMuchRequest,
-    queryPromise, makeHash
+    queryPromise, makeHash, commarNumber
 }
