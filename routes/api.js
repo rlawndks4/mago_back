@@ -3046,6 +3046,7 @@ const getAddressByText = async (req, res) => {
 const isOrdered = async (decode, item) => {
     let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item?.pk} AND end_date >= '${returnMoment()}'`);
     is_already_subscribe = is_already_subscribe?.result;
+    console.log(is_already_subscribe)
     if (is_already_subscribe.length > 0) {
         return true;
     }
