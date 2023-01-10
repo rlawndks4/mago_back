@@ -321,7 +321,7 @@ const onLoginByPhone = (req, res) => {
 }
 const uploadProfile = (req, res) => {
     try {
-        if(!req.file){
+        if (!req.file) {
             return response(req, res, 100, "success", [])
         }
         const image = '/image/' + req.file.fieldname + '/' + req.file.filename;
@@ -360,22 +360,22 @@ const editMyInfo = (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        if(decode?.id!=id){
+        if (decode?.id != id) {
             return response(req, res, -150, "잘못된 접근입니다.", [])
         }
-        if(typeNum==0){
-            let result = insertQuery("UPDATE user_table SET zip_code=?, address=?, address_detail=? WHERE pk=?",[zip_code, address, address_detail,decode?.pk]);
+        if (typeNum == 0) {
+            let result = insertQuery("UPDATE user_table SET zip_code=?, address=?, address_detail=? WHERE pk=?", [zip_code, address, address_detail, decode?.pk]);
             return response(req, res, 100, "success", []);
-        }else{
+        } else {
             crypto.pbkdf2(pw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
                 // bcrypt.hash(pw, salt, async (err, hash) => {
                 let hash = decoded.toString('base64')
-    
+
                 if (err) {
                     console.log(err)
                     return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
                 }
-    
+
                 await db.query("SELECT * FROM user_table WHERE id=? AND pw=?", [id, hash], async (err, result) => {
                     if (err) {
                         console.log(err);
@@ -3042,11 +3042,11 @@ const getAddressByText = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const onKeyrecieve = async(req, res) =>{
-    try{
-        let body = {...req.body};
-        return `<script>parent.approval_submit('${body.result_cd}','${body.result_msg}','${body.enc_data}');</script>`;
-    }catch (err) {
+const onKeyrecieve = async (req, res) => {
+    try {
+        let body = { ...req.body };
+        return res.send(`<script>parent.approval_submit('${body.result_cd}','${body.result_msg}','${body.enc_data}');</script>`);
+    } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", []);
     }
