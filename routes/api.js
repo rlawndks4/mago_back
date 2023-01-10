@@ -1265,14 +1265,14 @@ const getReviewByMasterPk = async (req, res) => {
             for (var i = 0; i < master_academies.length; i++) {
                 master_academy_pk.push(master_academies[i]?.pk);
             }
-            review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table ${master_academy_pk.length > 0 ? `WHERE academy_category_pk IN (${master_academy_pk.join()})` : `1=2`}`);
+            review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table ${master_academy_pk.length > 0 ? `WHERE academy_category_pk IN (${master_academy_pk.join()})` : `WHERE 1=2`}`);
             review_page = review_page?.result[0];
             review_page = review_page['COUNT(*)'] ?? 0;
             review_page = await makeMaxPage(review_page, page_cut);
             let sql = ` SELECT review_table.*,academy_category_table.main_img AS main_img, user_table.nickname AS nickname FROM review_table `;
             sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
             sql += `LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
-            sql += ` ${master_academy_pk.length > 0 ? `WHERE academy_category_pk IN (${master_academy_pk.join()})` : `1=2`} ORDER BY pk DESC LIMIT ${(page - 1) * page_cut}, ${page * page_cut} `
+            sql += ` ${master_academy_pk.length > 0 ? `WHERE academy_category_pk IN (${master_academy_pk.join()})` : `WHERE 1=2`} ORDER BY pk DESC LIMIT ${(page - 1) * page_cut}, ${page * page_cut} `
             review_list = await dbQueryList(sql);
             review_list = review_list?.result ?? [];
         } else {
