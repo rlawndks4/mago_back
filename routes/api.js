@@ -3044,7 +3044,8 @@ const getAddressByText = async (req, res) => {
 }
 const onKeyrecieve = async(req, res) =>{
     try{
-        let body = {...req.body};        
+        let body = {...req.body};
+        return `<script>parent.approval_submit('${body.result_cd}','${body.result_msg}','${body.enc_data}');</script>`;
     }catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", []);
