@@ -34,6 +34,7 @@ const jwtSecret = "djfudnsqlalfKeyFmfRkwu"
 const { format, formatDistance, formatRelative, subDays } = require('date-fns')
 const geolocation = require('geolocation')
 const { sqlJoinFormat, listFormatBySchema, myItemSqlJoinFormat } = require('../format/formats')
+const { param } = require('jquery')
 const kakaoOpt = {
     clientId: '4a8d167fa07331905094e19aafb2dc47',
     redirectUri: 'http://172.30.1.19:8001/api/kakao/callback',
@@ -3042,6 +3043,59 @@ const getAddressByText = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+const isOrdered = async (decode, item) => {    
+    let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item?.pk} AND end_date >= '${returnMoment()}'`);
+    is_already_subscribe = is_already_subscribe?.result;
+    if (is_already_subscribe.length > 0) {
+        return true;        
+    }
+    return false;
+}
+const orderInsert = async (decode, body, params ) => {    
+    let result = {'code':-1, 'obj':{}};
+    try {
+        let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${params?.pk}`);
+        item = item?.result[0];
+        if(isOrdered(decode, item) == false) {
+            let price = (item?.price ?? 0) * (100 - item?.discount_percent ?? 0) / 100;
+            let { data: resp } = await axios.post('https://divecebu.co.kr/divecebu/api/aynil/approval.php', { ...body, ...params, allat_amt: price });
+            result['obj'] = resp;
+
+            if (resp?.result == '0000') {
+                let trade_date = resp?.data?.approval_ymdhms;
+                trade_date = `${trade_date.slice(0, 4)}-${trade_date.slice(4, 6)}-${trade_date.slice(6, 8)} ${trade_date.slice(8, 10)}:${trade_date.slice(10, 12)}:${trade_date.slice(12, 14)}`;
+                let keys = {
+                    price: resp?.data?.amt,
+                    status: 1,
+                    user_pk: decode?.pk,
+                    master_pk: item?.master_pk,
+                    academy_category_pk: item?.pk,
+                    end_date: item?.end_date,
+                    card_num: "",
+                    card_name: resp?.data?.card_nm,
+                    trade_date: trade_date,
+                    installment: parseInt(resp?.data?.sell_mm),
+                    order_num: resp?.data?.order_no,
+                    approval_num: resp?.data?.approval_no
+                };
+                let insert_perchase_result = await insertQuery(`INSERT INTO subscribe_table (${Object.keys(keys).join()}) VALUES (${Object.keys(keys).map(() => { return "?" })})`, Object.values(keys))
+                result['code'] = 1;
+                result['message'] = '성공적으로 구매 되었습니다.';
+            }  else {
+                result['code'] = -2;
+                result['message'] = resp?.message;
+            }
+        } else {
+            result['code'] = 0;
+            result['message'] = '현재 이용중인 구독상품 입니다.'            
+        }
+    } catch (err) {
+        console.log(err)
+        result['code'] = -1;
+        result['obj']['message'] = err;
+    }
+    return result;
+}
 const onKeyrecieve = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0)
@@ -3051,55 +3105,26 @@ const onKeyrecieve = async (req, res) => {
         let body = { ...req.body };
         let params = { ...req.params };
 
-        let close_function = "";
-        if(params?.device=='pc'){
-            close_function = "parent.AllatPay_Closechk_End();";
-        }else{
-            close_function = "parent.Allat_Mobile_Close();";
-        }
         if (body?.allat_result_cd != '0000') {
             body.allat_result_msg.CharsSet = "euc-kr";
-            return res.send(`<script>${close_function} parent.alert('${body?.allat_result_cd} : ${body?.allat_result_msg}'); window.location.href = '/';</script>`);
-        }
-        let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${params?.pk}`);
-        item = item?.result[0];
-
-        let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item?.pk} AND end_date >= '${returnMoment()}'`);
-        is_already_subscribe = is_already_subscribe?.result;
-        if (is_already_subscribe.length > 0) {
-            return res.send(`<script>${close_function} parent.alert('현재 이용중인 구독상품 입니다.'); window.location.href = '/';</script>`);
-        }
-
-        let price = (item?.price ?? 0) * (100 - item?.discount_percent ?? 0) / 100;
-        let { data: resp } = await axios.post('https://divecebu.co.kr/divecebu/api/aynil/approval.php', { ...body, ...params, allat_amt: price });
-        if (resp?.result == '0000') {
-            let trade_date = resp?.data?.approval_ymdhms;
-            trade_date = `${trade_date.slice(0, 4)}-${trade_date.slice(4, 6)}-${trade_date.slice(6, 8)} ${trade_date.slice(8, 10)}:${trade_date.slice(10, 12)}:${trade_date.slice(12, 14)}`;
-            let keys = {
-                price: resp?.data?.amt,
-                status: 1,
-                user_pk: decode?.pk,
-                master_pk: item?.master_pk,
-                academy_category_pk: item?.pk,
-                end_date: item?.end_date,
-                card_num: "",
-                card_name: resp?.data?.card_nm,
-                trade_date: trade_date,
-                installment: parseInt(resp?.data?.sell_mm),
-                order_num: resp?.data?.order_no,
-                approval_num: resp?.data?.approval_no
-            };
-            await db.beginTransaction();
-            let insert_perchase_result = await insertQuery(`INSERT INTO subscribe_table (${Object.keys(keys).join()}) VALUES (${Object.keys(keys).map(() => { return "?" })})`, Object.values(keys))
-            await db.commit();
-            return res.send(`<script>${close_function} alert('성공적으로 구매 되었습니다.'); window.location.href = '/mypage';</script>`);
+            if(params?.device=='pc') {
+                return res.send(`<script>alert('${body?.allat_result_cd} : ${body?.allat_result_msg}'); window.close();</script>`);
+            } else {
+                return res.send(`<script>parent.Allat_Mobile_Close(); alert('${body?.allat_result_cd} : ${body?.allat_result_msg}'); window.location.href = '/';</script>`);
+            }
         } else {
-            return res.send(`<script>${close_function}; parent.alert('${resp?.message}'); window.location.href = '/';</script>`);
+            let result = await orderInsert(decode, body, params);
+            if(params?.device=='pc') {
+                return res.send(`<script>alert('${result['obj']['message']}'); window.close();</script>`);              
+            } else {
+            if(result['code'] == 1)
+                return res.send(`<script>parent.Allat_Mobile_Close(); alert('${result['obj']['message']}'); window.location.href = '/mypage';</script>`);
+            else
+                return res.send(`<script>parent.Allat_Mobile_Close(); alert('${result['obj']['message']}'); window.location.href = '/';</script>`);
+            }    
         }
     } catch (err) {
-        await db.rollback();
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", []);
+        res.send(`<script>parent.Allat_Mobile_Close(); alert('${err}'); window.location.href = '/';</script>`);
     }
 }
 
