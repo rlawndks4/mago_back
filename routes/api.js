@@ -3049,11 +3049,11 @@ const onKeyrecieve = async (req, res) => {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
         let body = { ...req.body };
-        let params = { ...req.params };
-        let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${params?.pk}`);
+        let query = { ...req.query };
+        let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${query?.pk}`);
         item = item?.result[0];
         let price = (item?.price ?? 0) * (100 - item?.discount_percent ?? 0) / 100;
-        const result = await axios.post('https://divecebu.co.kr/divecebu/api/aynil/approval.php', { ...body, ...params, allat_amt: price });
+        const result = await axios.post('https://divecebu.co.kr/divecebu/api/aynil/approval.php', { ...body, ...query, allat_amt: price });
         console.log(result);
         return;
         return res.send(`<script>parent.approval_submit('${body?.allat_result_cd}','${body?.allat_result_msg}','${body?.allat_enc_data}');</script>`);
