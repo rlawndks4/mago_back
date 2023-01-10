@@ -321,6 +321,9 @@ const onLoginByPhone = (req, res) => {
 }
 const uploadProfile = (req, res) => {
     try {
+        if(!req.file){
+            return response(req, res, 100, "success", [])
+        }
         const image = '/image/' + req.file.fieldname + '/' + req.file.filename;
         const id = req.body.id;
         db.query('UPDATE user_table SET profile_img=? WHERE id=?', [image, id], (err, result) => {
@@ -336,89 +339,113 @@ const uploadProfile = (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+const getMyInfo = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 0)
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        let result = await dbQueryList(`SELECT * FROM user_table WHERE pk=${decode?.pk}`);
+        result = result?.result[0];
+        return response(req, res, 100, "success", result);
+    } catch (e) {
+        console.log(e)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
 const editMyInfo = (req, res) => {
     try {
-        let { pw, nickname, newPw, phone, id } = req.body;
-        crypto.pbkdf2(pw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
-            // bcrypt.hash(pw, salt, async (err, hash) => {
-            let hash = decoded.toString('base64')
-
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
-            }
-
-            await db.query("SELECT * FROM user_table WHERE id=? AND pw=?", [id, hash], async (err, result) => {
+        let { pw, nickname, newPw, phone, id, zip_code, address, address_detail, typeNum } = req.body;
+        const decode = checkLevel(req.cookies.token, 0)
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        if(decode?.id!=id){
+            return response(req, res, -150, "잘못된 접근입니다.", [])
+        }
+        if(typeNum==0){
+            let result = insertQuery("UPDATE user_table SET zip_code=?, address=?, address_detail=? WHERE pk=?",[zip_code, address, address_detail,decode?.pk]);
+            return response(req, res, 100, "success", []);
+        }else{
+            crypto.pbkdf2(pw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
+                // bcrypt.hash(pw, salt, async (err, hash) => {
+                let hash = decoded.toString('base64')
+    
                 if (err) {
-                    console.log(err);
-                    return response(req, res, -100, "서버 에러 발생", [])
-                } else {
-                    if (result.length > 0) {
-                        if (newPw) {
-                            await crypto.pbkdf2(newPw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
-                                // bcrypt.hash(pw, salt, async (err, hash) => {
-                                let new_hash = decoded.toString('base64')
-                                if (err) {
-                                    console.log(err)
-                                    return response(req, res, -200, "새 비밀번호 암호화 도중 에러 발생", [])
+                    console.log(err)
+                    return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
+                }
+    
+                await db.query("SELECT * FROM user_table WHERE id=? AND pw=?", [id, hash], async (err, result) => {
+                    if (err) {
+                        console.log(err);
+                        return response(req, res, -100, "서버 에러 발생", [])
+                    } else {
+                        if (result.length > 0) {
+                            if (newPw) {
+                                await crypto.pbkdf2(newPw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
+                                    // bcrypt.hash(pw, salt, async (err, hash) => {
+                                    let new_hash = decoded.toString('base64')
+                                    if (err) {
+                                        console.log(err)
+                                        return response(req, res, -200, "새 비밀번호 암호화 도중 에러 발생", [])
+                                    }
+                                    await db.query("UPDATE user_table SET pw=? WHERE id=?", [new_hash, id], (err, result) => {
+                                        if (err) {
+                                            console.log(err)
+                                            return response(req, res, -100, "서버 에러 발생", []);
+                                        } else {
+                                            return response(req, res, 100, "success", []);
+                                        }
+                                    })
+                                })
+                            } else if (nickname || phone) {
+                                let selectSql = "";
+                                let updateSql = "";
+                                let zColumn = [];
+                                if (nickname) {
+                                    selectSql = "SELECT * FROM user_table WHERE nickname=? AND id!=?"
+                                    updateSql = "UPDATE user_table SET nickname=? WHERE id=?";
+                                    zColumn.push(nickname);
+                                } else if (phone) {
+                                    selectSql = "SELECT * FROM user_table WHERE phone=? AND id!=?"
+                                    updateSql = "UPDATE user_table SET phone=? WHERE id=?";
+                                    zColumn.push(phone);
                                 }
-                                await db.query("UPDATE user_table SET pw=? WHERE id=?", [new_hash, id], (err, result) => {
+                                zColumn.push(id);
+                                await db.query(selectSql, zColumn, async (err, result1) => {
                                     if (err) {
                                         console.log(err)
                                         return response(req, res, -100, "서버 에러 발생", []);
                                     } else {
-                                        return response(req, res, 100, "success", []);
+                                        if (result1.length > 0) {
+                                            let message = "";
+                                            if (nickname) {
+                                                message = "이미 사용중인 닉네임 입니다.";
+                                            } else if (phone) {
+                                                message = "이미 사용중인 전화번호 입니다.";
+                                            }
+                                            return response(req, res, -50, message, []);
+                                        } else {
+                                            await db.query(updateSql, zColumn, (err, result2) => {
+                                                if (err) {
+                                                    console.log(err)
+                                                    return response(req, res, -100, "서버 에러 발생", []);
+                                                } else {
+                                                    return response(req, res, 100, "success", []);
+                                                }
+                                            })
+                                        }
                                     }
                                 })
-                            })
-                        } else if (nickname || phone) {
-                            let selectSql = "";
-                            let updateSql = "";
-                            let zColumn = [];
-                            if (nickname) {
-                                selectSql = "SELECT * FROM user_table WHERE nickname=? AND id!=?"
-                                updateSql = "UPDATE user_table SET nickname=? WHERE id=?";
-                                zColumn.push(nickname);
-                            } else if (phone) {
-                                selectSql = "SELECT * FROM user_table WHERE phone=? AND id!=?"
-                                updateSql = "UPDATE user_table SET phone=? WHERE id=?";
-                                zColumn.push(phone);
                             }
-                            zColumn.push(id);
-                            await db.query(selectSql, zColumn, async (err, result1) => {
-                                if (err) {
-                                    console.log(err)
-                                    return response(req, res, -100, "서버 에러 발생", []);
-                                } else {
-                                    if (result1.length > 0) {
-                                        let message = "";
-                                        if (nickname) {
-                                            message = "이미 사용중인 닉네임 입니다.";
-                                        } else if (phone) {
-                                            message = "이미 사용중인 전화번호 입니다.";
-                                        }
-                                        return response(req, res, -50, message, []);
-                                    } else {
-                                        await db.query(updateSql, zColumn, (err, result2) => {
-                                            if (err) {
-                                                console.log(err)
-                                                return response(req, res, -100, "서버 에러 발생", []);
-                                            } else {
-                                                return response(req, res, 100, "success", []);
-                                            }
-                                        })
-                                    }
-                                }
-                            })
+                        } else {
+                            return response(req, res, -50, "비밀번호가 일치하지 않습니다.", [])
                         }
-                    } else {
-                        return response(req, res, -50, "비밀번호가 일치하지 않습니다.", [])
                     }
-                }
+                })
             })
-        })
-
-
+        }
     } catch (e) {
         console.log(e)
         return response(req, res, -200, "서버 에러 발생", [])
@@ -977,7 +1004,7 @@ const getHomeContent = async (req, res) => {
         ];
 
         for (var i = 0; i < sql_list.length; i++) {
-            if(sql_list[i]?.table=='best_review'){
+            if (sql_list[i]?.table == 'best_review') {
                 sql_list[i].sql = 'SELECT review_table.*, academy_category_table.main_img FROM review_table ';
                 sql_list[i].sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
                 sql_list[i].sql += ` WHERE review_table.is_best=1 ORDER BY pk DESC `;
@@ -1006,7 +1033,7 @@ const getHomeContent = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const getHeaderContent = async (req, res) =>{
+const getHeaderContent = async (req, res) => {
     try {
         let result_list = [];
         let sql_list = [
@@ -1044,10 +1071,10 @@ const getAcademyList = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>='${returnMoment()}'  ORDER BY pk DESC`, );
+        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>='${returnMoment()}'  ORDER BY pk DESC`,);
         my_enrolment_list = my_enrolment_list?.result;
         let academy_pk_list = [];
-        for(var i =0 ;i<my_enrolment_list.length;i++){
+        for (var i = 0; i < my_enrolment_list.length; i++) {
             academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
         }
         let result_list = [];
@@ -1092,18 +1119,18 @@ const getMyAcademyClasses = async (req, res) => {
         let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
         my_enrolment_list = my_enrolment_list?.result;
         let academy_pk_list = [];
-        if(master_pk){
+        if (master_pk) {
             for (var i = 0; i < my_enrolment_list.length; i++) {
                 if (master_pk == my_enrolment_list[i]?.master_pk) {
                     academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
                 }
             }
-        }else{
+        } else {
             for (var i = 0; i < my_enrolment_list.length; i++) {
                 academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
             }
         }
-        
+
         let academy_list = await dbQueryList(`SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ${academy_pk_list.length > 0 ? `AND academy_category_table.pk IN (${academy_pk_list.join()})` : 'AND 1=2'}  `)
         academy_list = academy_list?.result;
         return response(req, res, 100, "success", academy_list);
@@ -1148,8 +1175,8 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
             return response(req, res, -150, "권한이 없습니다.", [])
         }
         let academy_list_sql = `SELECT academy_table.*, user_table.nickname AS nickname FROM academy_table LEFT JOIN user_table ON academy_table.master_pk=user_table.pk WHERE academy_table.category_pk=${pk} AND academy_table.status=1 ORDER BY academy_table.sort DESC `
-        if(page){
-            academy_list_sql += ` LIMIT ${(page-1)*page_cut}, ${page*page_cut} `;
+        if (page) {
+            academy_list_sql += ` LIMIT ${(page - 1) * page_cut}, ${page * page_cut} `;
         }
         let academy_count = await dbQueryList(`SELECT COUNT(*) FROM academy_table WHERE category_pk=${pk} AND status=1 `);
         academy_count = academy_count?.result[0];
@@ -1157,111 +1184,111 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
         let maxPage = await makeMaxPage(academy_count, page_cut);
         let academy_list = await dbQueryList(academy_list_sql);
         academy_list = academy_list?.result;
-        return response(req, res, 100, "success", {maxPage:maxPage,data:academy_list});
+        return response(req, res, 100, "success", { maxPage: maxPage, data: academy_list });
     } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const getAcademyCategoryContent = async(req, res) =>{
+const getAcademyCategoryContent = async (req, res) => {
     try {
-        let {pk, page, page_cut} = req.query;
+        let { pk, page, page_cut } = req.query;
         console.log(req.query)
         let academy_content = undefined;
         page_cut = 4;
-        if(page==1){
+        if (page == 1) {
             academy_content = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${pk}`);
             academy_content = await academy_content?.result[0];
         }
         let review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table WHERE academy_category_pk=${pk}`);
-        review_page =review_page?.result[0];
-        review_page = review_page['COUNT(*)']??0;
+        review_page = review_page?.result[0];
+        review_page = review_page['COUNT(*)'] ?? 0;
         review_page = await makeMaxPage(review_page, page_cut);
         let review_sql = ` SELECT review_table.*,academy_category_table.main_img AS main_img, user_table.nickname AS nickname FROM review_table `;
         review_sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
         review_sql += ` LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
-        review_sql += ` WHERE academy_category_pk=${pk} ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut} `;
+        review_sql += ` WHERE academy_category_pk=${pk} ORDER BY pk DESC LIMIT ${(page - 1) * page_cut}, ${page * page_cut} `;
         let review_list = await dbQueryList(review_sql);
-        review_list =review_list?.result;
-        return response(req, res, 100, "success", {maxPage:review_page,review_list:review_list,academy_content:academy_content});
+        review_list = review_list?.result;
+        return response(req, res, 100, "success", { maxPage: review_page, review_list: review_list, academy_content: academy_content });
     } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const getMasterContent = async (req, res) =>{
-    try{
-        let {pk, page, page_cut} = req.query;
+const getMasterContent = async (req, res) => {
+    try {
+        let { pk, page, page_cut } = req.query;
         let master_content = undefined;
         page_cut = 4;
-        if(page==1){
+        if (page == 1) {
             master_content = await dbQueryList(`SELECT * FROM user_table WHERE pk=${pk}`);
             master_content = await master_content?.result[0];
         }
         let master_academies = await dbQueryList(`SELECT * FROM academy_category_table WHERE master_pk=${pk}`);
         master_academies = master_academies?.result;
         let master_academy_pk = [];
-        for(var i = 0;i<master_academies.length;i++){
+        for (var i = 0; i < master_academies.length; i++) {
             master_academy_pk.push(master_academies[i]?.pk);
         }
-        let review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:` WHERE 1=2`}`);
-        review_page =review_page?.result[0];
-        review_page = review_page['COUNT(*)']??0;
+        let review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table ${master_academy_pk.length > 0 ? `WHERE academy_category_pk IN (${master_academy_pk.join()})` : ` WHERE 1=2`}`);
+        review_page = review_page?.result[0];
+        review_page = review_page['COUNT(*)'] ?? 0;
         review_page = await makeMaxPage(review_page, page_cut);
         let review_sql = ` SELECT review_table.*,academy_category_table.main_img AS main_img, user_table.nickname AS nickname FROM review_table `;
         review_sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
         review_sql += ` LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
-        review_sql += ` ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:` WHERE 1=2`} ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut} `;
+        review_sql += ` ${master_academy_pk.length > 0 ? `WHERE academy_category_pk IN (${master_academy_pk.join()})` : ` WHERE 1=2`} ORDER BY pk DESC LIMIT ${(page - 1) * page_cut}, ${page * page_cut} `;
         let review_list = await dbQueryList(review_sql);
-        review_list = review_list?.result??[];
-        return response(req, res, 100, "success", {maxPage:review_page,review_list:review_list,master_content:master_content, academy:master_academies});
-    }catch (err) {
+        review_list = review_list?.result ?? [];
+        return response(req, res, 100, "success", { maxPage: review_page, review_list: review_list, master_content: master_content, academy: master_academies });
+    } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const getReviewByMasterPk = async(req, res) =>{
-    try{
-        let {pk, page, page_cut} = req.query;
+const getReviewByMasterPk = async (req, res) => {
+    try {
+        let { pk, page, page_cut } = req.query;
         let master_content = undefined;
         let master_academies = undefined;
         let master_academy_pk = [];
         let review_page = undefined;
         let review_list = [];
         page_cut = 5;
-        if(pk){
+        if (pk) {
             master_content = await dbQueryList(`SELECT * FROM user_table WHERE pk=${pk}`);
             master_content = await master_content?.result[0];
             master_academies = await dbQueryList(`SELECT * FROM academy_category_table WHERE master_pk=${pk}`);
             master_academies = master_academies?.result;
             master_academy_pk = [];
-            for(var i = 0;i<master_academies.length;i++){
+            for (var i = 0; i < master_academies.length; i++) {
                 master_academy_pk.push(master_academies[i]?.pk);
             }
-            review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:`1=2`}`);
-            review_page =review_page?.result[0];
-            review_page = review_page['COUNT(*)']??0;
+            review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table ${master_academy_pk.length > 0 ? `WHERE academy_category_pk IN (${master_academy_pk.join()})` : `1=2`}`);
+            review_page = review_page?.result[0];
+            review_page = review_page['COUNT(*)'] ?? 0;
             review_page = await makeMaxPage(review_page, page_cut);
             let sql = ` SELECT review_table.*,academy_category_table.main_img AS main_img, user_table.nickname AS nickname FROM review_table `;
             sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
             sql += `LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
-            sql += ` ${master_academy_pk.length>0?`WHERE academy_category_pk IN (${master_academy_pk.join()})`:`1=2`} ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut} `
+            sql += ` ${master_academy_pk.length > 0 ? `WHERE academy_category_pk IN (${master_academy_pk.join()})` : `1=2`} ORDER BY pk DESC LIMIT ${(page - 1) * page_cut}, ${page * page_cut} `
             review_list = await dbQueryList(sql);
-            review_list = review_list?.result??[];
-        }else{
+            review_list = review_list?.result ?? [];
+        } else {
             review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table `);
-            review_page =review_page?.result[0];
-            review_page = review_page['COUNT(*)']??0;
+            review_page = review_page?.result[0];
+            review_page = review_page['COUNT(*)'] ?? 0;
             review_page = await makeMaxPage(review_page, page_cut);
             let sql = ` SELECT review_table.*,academy_category_table.main_img AS main_img, user_table.nickname AS nickname FROM review_table `;
             sql += `LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
             sql += `LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
-            sql += ` ORDER BY pk DESC LIMIT ${(page-1)*page_cut}, ${page*page_cut} `;
+            sql += ` ORDER BY pk DESC LIMIT ${(page - 1) * page_cut}, ${page * page_cut} `;
             review_list = await dbQueryList(sql);
-            review_list = review_list?.result??[];
+            review_list = review_list?.result ?? [];
         }
-        return response(req, res, 100, "success", {maxPage:review_page,data:review_list});
-    }catch (err) {
+        return response(req, res, 100, "success", { maxPage: review_page, data: review_list });
+    } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
     }
@@ -1632,7 +1659,7 @@ const addItemByUser = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let permission_schema = ['request','review'];
+        let permission_schema = ['request', 'review'];
         if (!permission_schema.includes(req.body.table)) {
             return response(req, res, -150, "잘못된 접근입니다.", [])
         }
@@ -1665,7 +1692,7 @@ const addItemByUser = async (req, res) => {
             values_str += ", ?"
         }
         let table = req.body.table;
-        let use_user_pk = ['request','review'];
+        let use_user_pk = ['request', 'review'];
         if (use_user_pk.includes(table)) {
             keys.push('user_pk');
             values.push(decode?.pk);
@@ -2431,14 +2458,14 @@ const getOneEvent = (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const getOptionObjBySchema = async (schema, whereStr) =>{
+const getOptionObjBySchema = async (schema, whereStr) => {
     let obj = {};
-    if(schema=='subscribe'){
+    if (schema == 'subscribe') {
         let option = await dbQueryList(`SELECT COUNT(*) AS people_num, SUM(price) AS sum_price FROM ${schema}_table ${whereStr}`);
         option = option?.result[0];
         obj = {
-            people_num:{title:'총 수강인원',content:commarNumber(option?.people_num??0)},
-            sum_price:{title:'총 결제금액',content:commarNumber(option?.sum_price??0)}
+            people_num: { title: '총 수강인원', content: commarNumber(option?.people_num ?? 0) },
+            sum_price: { title: '총 결제금액', content: commarNumber(option?.sum_price ?? 0) }
         }
     }
     return obj;
@@ -2507,7 +2534,7 @@ const getItems = async (req, res) => {
                             result = await listFormatBySchema(table, result);
                             let maxPage = result1[0]['COUNT(*)'] % page_cut == 0 ? (result1[0]['COUNT(*)'] / page_cut) : ((result1[0]['COUNT(*)'] - result1[0]['COUNT(*)'] % page_cut) / page_cut + 1);
                             let option_obj = await getOptionObjBySchema(table, whereStr);
-                            return response(req, res, 100, "success", { data: result2, maxPage: maxPage, option_obj:option_obj });
+                            return response(req, res, 100, "success", { data: result2, maxPage: maxPage, option_obj: option_obj });
                         }
                     })
                 }
@@ -2606,7 +2633,7 @@ const onSubscribe = async (req, res) => {
         if (!item?.pk) {
             return response(req, res, -100, "잘못된 구독상품 입니다.", []);
         }
-        if(item?.is_deadline==1){
+        if (item?.is_deadline == 1) {
             return response(req, res, -100, "마감된 상품 입니다.", []);
         }
         let master = await dbQueryList(`SELECT * FROM user_table WHERE pk=${item?.master_pk}`);
@@ -2629,7 +2656,68 @@ const onSubscribe = async (req, res) => {
         let result = undefined;
         if (bag_pk) {
             result = insertQuery(`UPDATE subscribe_table SET status=1, price=? WHERE pk=?`, [((item?.price ?? 0) * ((100 - item?.discount_percent) / 100)), bag_pk])
-        }else{
+        } else {
+            result = insertQuery(`INSERT INTO subscribe_table (${keys.join()}) VALUES (${keys_q.join()})`, values);
+        }
+        await db.commit();
+        return response(req, res, 100, "success", []);
+
+    } catch (err) {
+        await db.rollback();
+        console.log(err);
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+const getSubscribe = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 0)
+        if (!decode) {
+            return response(req, res, -150, "회원전용 메뉴입니다.", []);
+        }
+        let { item_pk, type_num, bag_pk } = req.body;
+
+        let bag_content = {};
+        if (bag_pk) {
+            bag_content = await dbQueryList(`SELECT * FROM subscribe_table WHERE pk=${bag_pk}`);
+            bag_content = bag_content?.result[0];
+            item_pk = bag_content?.academy_category_pk;
+            type_num = 1;
+        }
+
+        let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item_pk} AND end_date >= '${returnMoment()}'`);
+        is_already_subscribe = is_already_subscribe?.result;
+        if (is_already_subscribe.length > 0) {
+            return response(req, res, -100, "현재 이용중인 구독상품 입니다.", []);
+        }
+        let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${item_pk}`);
+        item = item?.result[0];
+        if (!item?.pk) {
+            return response(req, res, -100, "잘못된 구독상품 입니다.", []);
+        }
+        if (item?.is_deadline == 1) {
+            return response(req, res, -100, "마감된 상품 입니다.", []);
+        }
+        let master = await dbQueryList(`SELECT * FROM user_table WHERE pk=${item?.master_pk}`);
+        master = master?.result[0];
+        let today = new Date();
+        let period = addDays(today, item?.period);
+        period = returnMoment(period);
+        await db.beginTransaction();
+        let keys = ['user_pk', 'master_pk', 'academy_category_pk', 'end_date', 'status'];
+        let keys_q = [];
+        for (var i = 0; i < keys.length; i++) {
+            keys_q.push('?');
+        }
+        let values = [decode?.pk, master?.pk, item?.pk, period, type_num];
+        if (type_num == 1) {
+            keys.push('price');
+            keys_q.push('?');
+            values.push((item?.price ?? 0) * ((100 - item?.discount_percent) / 100));
+        }
+        let result = undefined;
+        if (bag_pk) {
+            result = insertQuery(`UPDATE subscribe_table SET status=1, price=? WHERE pk=?`, [((item?.price ?? 0) * ((100 - item?.discount_percent) / 100)), bag_pk])
+        } else {
             result = insertQuery(`INSERT INTO subscribe_table (${keys.join()}) VALUES (${keys_q.join()})`, values);
         }
         await db.commit();
@@ -2913,8 +3001,49 @@ const setCountNotReadNoti = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+const getAddressByText = async (req, res) => {
+    try {
+        let { text } = req.body;
+        let client_id = 'y7ilf087qu';
+        let client_secret = '7J780cymrcHrnGs9hR47bXb9myEkxlTqZ95yMSbb';
+        let api_url = 'https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode'; // json
+
+        const coord = await axios.get(`${api_url}`, {
+            params: {
+                query: text,
+            },
+            headers: {
+                "X-NCP-APIGW-API-KEY-ID": `${client_id}`,
+                "X-NCP-APIGW-API-KEY": `${client_secret}`,
+            },
+        })
+        if (!coord.data.addresses) {
+            return response(req, res, 100, "success", []);
+        } else {
+            let result = [];
+            for (var i = 0; i < coord.data.addresses.length; i++) {
+                result[i] = {
+                    lng: coord.data.addresses[i].x,
+                    lat: coord.data.addresses[i].y,
+                    road_address: coord.data.addresses[i].roadAddress,
+                    address: coord.data.addresses[i].jibunAddress
+                }
+                console.log(coord.data.addresses[i].addressElements[8])
+                for (var j = 0; j < coord.data.addresses[i].addressElements.length; j++) {
+                    if (coord.data.addresses[i].addressElements[j]?.types[0] == 'POSTAL_CODE') {
+                        result[i].zip_code = coord.data.addresses[i].addressElements[j]?.longName;
+                    }
+                }
+            }
+            return response(req, res, 100, "success", result);
+        }
+    } catch (e) {
+        console.log(e)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
 module.exports = {
-    onLoginById, getUserToken, onLogout, checkExistId, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns,//auth
+    onLoginById, getUserToken, onLogout, checkExistId, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo,//auth
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
