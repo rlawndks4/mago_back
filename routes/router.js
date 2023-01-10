@@ -85,7 +85,7 @@ router.get('/getreviewbymasterpk', getReviewByMasterPk);
 router.get('/getmyinfo', getMyInfo);
 router.post('/getaddressbytext', getAddressByText);
 
-router.post('/keyrecieve/:pk', onKeyrecieve);
+router.post('/keyrecieve/:pk/:device', onKeyrecieve);
 
 
 router.post('/updatesetting', upload.fields([{ name: 'content' }, { name: 'content2' }]), updateSetting);

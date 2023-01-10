@@ -3050,9 +3050,16 @@ const onKeyrecieve = async (req, res) => {
         }
         let body = { ...req.body };
         let params = { ...req.params };
+
+        let close_function = "";
+        if(params?.device=='pc'){
+            close_function = "parent.AllatPay_Closechk_End();";
+        }else{
+            close_function = "parent.Allat_Mobile_Close();";
+        }
         if (body?.allat_result_cd != '0000') {
             body.allat_result_msg.CharsSet = "euc-kr";
-            return res.send(`<script>parent.Allat_Mobile_Close(); parent.alert('${body?.allat_result_cd} : ${body?.allat_result_msg}'); window.location.href = '/';</script>`);
+            return res.send(`<script>${close_function} parent.alert('${body?.allat_result_cd} : ${body?.allat_result_msg}'); window.location.href = '/';</script>`);
         }
         let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${params?.pk}`);
         item = item?.result[0];
@@ -3060,7 +3067,7 @@ const onKeyrecieve = async (req, res) => {
         let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item?.pk} AND end_date >= '${returnMoment()}'`);
         is_already_subscribe = is_already_subscribe?.result;
         if (is_already_subscribe.length > 0) {
-            return res.send(`<script>parent.Allat_Mobile_Close(); parent.alert('현재 이용중인 구독상품 입니다.'); window.location.href = '/';</script>`);
+            return res.send(`<script>${close_function} parent.alert('현재 이용중인 구독상품 입니다.'); window.location.href = '/';</script>`);
         }
 
         let price = (item?.price ?? 0) * (100 - item?.discount_percent ?? 0) / 100;
@@ -3085,9 +3092,9 @@ const onKeyrecieve = async (req, res) => {
             await db.beginTransaction();
             let insert_perchase_result = await insertQuery(`INSERT INTO subscribe_table (${Object.keys(keys).join()}) VALUES (${Object.keys(keys).map(() => { return "?" })})`, Object.values(keys))
             await db.commit();
-            return res.send(`<script>parent.Allat_Mobile_Close(); alert('성공적으로 구매 되었습니다.'); window.location.href = '/mypage';</script>`);
+            return res.send(`<script>${close_function} alert('성공적으로 구매 되었습니다.'); window.location.href = '/mypage';</script>`);
         } else {
-            return res.send(`<script>parent.Allat_Mobile_Close(); parent.alert('${resp?.message}'); window.location.href = '/';</script>`);
+            return res.send(`<script>${close_function}; parent.alert('${resp?.message}'); window.location.href = '/';</script>`);
         }
     } catch (err) {
         await db.rollback();
