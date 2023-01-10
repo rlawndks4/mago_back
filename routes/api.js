@@ -3054,7 +3054,8 @@ const orderInsert = async (decode, body, params) => {
     try {
         let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${params?.pk}`);
         item = item?.result[0];
-        if (isOrdered(decode, item) == false) {
+        let is_already_subscribe = await isOrdered(decode, item);
+        if (!is_already_subscribe) {
             let price = (item?.price ?? 0) * (100 - item?.discount_percent ?? 0) / 100;
             let { data: resp } = await axios.post('https://divecebu.co.kr/divecebu/api/aynil/approval.php', { ...body, ...params, allat_amt: price });
             result['obj'] = resp;
