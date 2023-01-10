@@ -3050,6 +3050,7 @@ const onKeyrecieve = async (req, res) => {
         }
         let body = { ...req.body };
         let query = { ...req.query };
+        console.log(query)
         let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${query?.pk}`);
         item = item?.result[0];
         let price = (item?.price ?? 0) * (100 - item?.discount_percent ?? 0) / 100;
