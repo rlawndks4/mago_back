@@ -3060,9 +3060,9 @@ const onKeyrecieve = async (req, res) => {
         let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item?.pk} AND end_date >= '${returnMoment()}'`);
         is_already_subscribe = is_already_subscribe?.result;
         if (is_already_subscribe.length > 0) {
-            return response(req, res, -100, "현재 이용중인 구독상품 입니다.", []);
+            return res.send(`<script>parent.Allat_Mobile_Close(); parent.alert('현재 이용중인 구독상품 입니다.'); window.location.href = '/';</script>`);
         }
-        
+
         let price = (item?.price ?? 0) * (100 - item?.discount_percent ?? 0) / 100;
         let { data: response } = await axios.post('https://divecebu.co.kr/divecebu/api/aynil/approval.php', { ...body, ...params, allat_amt: price });
         if (response?.result == '0000') {
