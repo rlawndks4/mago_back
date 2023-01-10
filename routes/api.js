@@ -3045,6 +3045,7 @@ const getAddressByText = async (req, res) => {
 const onKeyrecieve = async (req, res) => {
     try {
         let body = { ...req.body };
+        console.log(body);
         return res.send(`<script>parent.approval_submit('${body.result_cd}','${body.result_msg}','${body.enc_data}');</script>`);
     } catch (err) {
         console.log(err)
