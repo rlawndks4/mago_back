@@ -3043,20 +3043,20 @@ const getAddressByText = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const isOrdered = async (decode, item) => {    
+const isOrdered = async (decode, item) => {
     let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item?.pk} AND end_date >= '${returnMoment()}'`);
     is_already_subscribe = is_already_subscribe?.result;
     if (is_already_subscribe.length > 0) {
-        return true;        
+        return true;
     }
     return false;
 }
-const orderInsert = async (decode, body, params ) => {    
-    let result = {'code':-1, 'obj':{}};
+const orderInsert = async (decode, body, params) => {
+    let result = { 'code': -1, 'obj': {} };
     try {
         let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${params?.pk}`);
         item = item?.result[0];
-        if(isOrdered(decode, item) == false) {
+        if (isOrdered(decode, item) == false) {
             let price = (item?.price ?? 0) * (100 - item?.discount_percent ?? 0) / 100;
             let { data: resp } = await axios.post('https://divecebu.co.kr/divecebu/api/aynil/approval.php', { ...body, ...params, allat_amt: price });
             result['obj'] = resp;
@@ -3080,14 +3080,14 @@ const orderInsert = async (decode, body, params ) => {
                 };
                 let insert_perchase_result = await insertQuery(`INSERT INTO subscribe_table (${Object.keys(keys).join()}) VALUES (${Object.keys(keys).map(() => { return "?" })})`, Object.values(keys))
                 result['code'] = 1;
-                result['message'] = '성공적으로 구매 되었습니다.';
-            }  else {
+                result['obj']['message'] = '성공적으로 구매 되었습니다.';
+            } else {
                 result['code'] = -2;
-                result['message'] = resp?.message;
+                result['obj']['message'] = resp?.message;
             }
         } else {
             result['code'] = 0;
-            result['message'] = '현재 이용중인 구독상품 입니다.'            
+            result['obj']['message'] = '현재 이용중인 구독상품 입니다.'
         }
     } catch (err) {
         console.log(err)
@@ -3107,21 +3107,21 @@ const onKeyrecieve = async (req, res) => {
 
         if (body?.allat_result_cd != '0000') {
             body.allat_result_msg.CharsSet = "euc-kr";
-            if(params?.device=='pc') {
+            if (params?.device == 'pc') {
                 return res.send(`<script>alert('${body?.allat_result_cd} : ${body?.allat_result_msg}'); window.close();</script>`);
             } else {
                 return res.send(`<script>parent.Allat_Mobile_Close(); alert('${body?.allat_result_cd} : ${body?.allat_result_msg}'); window.location.href = '/';</script>`);
             }
         } else {
             let result = await orderInsert(decode, body, params);
-            if(params?.device=='pc') {
-                return res.send(`<script>alert('${result['obj']['message']}'); window.close();</script>`);              
+            if (params?.device == 'pc') {
+                return res.send(`<script>alert('${result['obj']['message']}'); window.close();</script>`);
             } else {
-            if(result['code'] == 1)
-                return res.send(`<script>parent.Allat_Mobile_Close(); alert('${result['obj']['message']}'); window.location.href = '/mypage';</script>`);
-            else
-                return res.send(`<script>parent.Allat_Mobile_Close(); alert('${result['obj']['message']}'); window.location.href = '/';</script>`);
-            }    
+                if (result['code'] == 1)
+                    return res.send(`<script>parent.Allat_Mobile_Close(); alert('${result['obj']['message']}'); window.location.href = '/mypage';</script>`);
+                else
+                    return res.send(`<script>parent.Allat_Mobile_Close(); alert('${result['obj']['message']}'); window.location.href = '/';</script>`);
+            }
         }
     } catch (err) {
         res.send(`<script>parent.Allat_Mobile_Close(); alert('${err}'); window.location.href = '/';</script>`);
