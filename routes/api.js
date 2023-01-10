@@ -3046,7 +3046,7 @@ const onKeyrecieve = async (req, res) => {
     try {
         let body = { ...req.body };
         console.log(body);
-        return res.send(`<script>parent.approval_submit('${body.result_cd}','${body.result_msg}','${body.enc_data}');</script>`);
+        return res.send(`<script>parent.approval_submit('${body?.allat_result_cd}','${body?.allat_result_msg}','${body?.allat_enc_data}');</script>`);
     } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", []);
