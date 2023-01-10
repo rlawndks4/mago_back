@@ -9,7 +9,7 @@ const crypto = require('crypto')
 //const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const when = require('when')
-
+let iconv = require('iconv-lite');
 const { checkLevel, getSQLnParams, getUserPKArrStrWithNewPK,
     isNotNullOrUndefined, namingImagesPath, nullResponse,
     lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber
@@ -962,6 +962,7 @@ const addChannel = (req, res) => {
         return response(req, res, -200, "서버 에러 발생", []);
     }
 }
+
 const updateChannel = (req, res) => {
     try {
         let nickname = req.body.nickname;
@@ -1193,7 +1194,6 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
 const getAcademyCategoryContent = async (req, res) => {
     try {
         let { pk, page, page_cut } = req.query;
-        console.log(req.query)
         let academy_content = undefined;
         page_cut = 4;
         if (page == 1) {
@@ -3042,10 +3042,20 @@ const getAddressByText = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+const onKeyrecieve = async(req, res) =>{
+    try{
+        let body = {...req.body};        
+    }catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", []);
+    }
+}
+
+
 module.exports = {
     onLoginById, getUserToken, onLogout, checkExistId, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo,//auth
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
-    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent, getAcademyCategoryContent, getMasterContent, getReviewByMasterPk
+    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent, getAcademyCategoryContent, getMasterContent, getReviewByMasterPk, onKeyrecieve
 };
