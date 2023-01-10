@@ -3050,10 +3050,10 @@ const onKeyrecieve = async (req, res) => {
         }
         let body = { ...req.body };
         let params = { ...req.params };
-        console.log(params)
         let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${params?.pk}`);
         item = item?.result[0];
         let price = (item?.price ?? 0) * (100 - item?.discount_percent ?? 0) / 100;
+        console.log(price)
         const result = await axios.post('https://divecebu.co.kr/divecebu/api/aynil/approval.php', { ...body, ...params, allat_amt: price });
         console.log(result?.data);
         return;
