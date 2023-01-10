@@ -3045,6 +3045,9 @@ const getAddressByText = async (req, res) => {
 const onKeyrecieve = async (req, res) => {
     try {
         let body = { ...req.body };
+        let params = { ...req.params };
+        const result = await axios.post('https://divecebu.co.kr/api/aynil/approval.php', { ...body, ...params });
+        console.log(result);
         return res.send(`<script>parent.approval_submit('${body?.allat_result_cd}','${body?.allat_result_msg}','${body?.allat_enc_data}');</script>`);
     } catch (err) {
         console.log(err)
