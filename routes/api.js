@@ -3036,7 +3036,11 @@ const getAddressByText = async (req, res) => {
                     }
                 }
             }
-            return response(req, res, 100, "success", result);
+            if(result.length>0){
+                return response(req, res, 100, "success", result);
+            }else{
+                return response(req, res, -100, "없는 주소 입니다.", result);
+            }
         }
     } catch (e) {
         console.log(e);
