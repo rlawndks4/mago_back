@@ -1081,7 +1081,7 @@ const getAcademyList = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>='${returnMoment().substring(0, 10)}' AND use_status=1  ORDER BY pk DESC`,);
+        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>='${returnMoment().substring(0, 10)}' AND use_status=1 AND status=1  ORDER BY pk DESC`,);
         my_enrolment_list = my_enrolment_list?.result;
         let academy_pk_list = [];
         for (var i = 0; i < my_enrolment_list.length; i++) {
@@ -1126,7 +1126,7 @@ const getMyAcademyClasses = async (req, res) => {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
         let master_pk = req.body.master_pk;
-        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=? AND use_status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
+        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=? AND use_status=1 AND status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
         my_enrolment_list = my_enrolment_list?.result;
         let academy_pk_list = [];
         if (master_pk) {
@@ -1178,8 +1178,9 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
         }
         let { pk, page, page_cut } = req.body;
         page_cut = 10;
-        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND academy_category_pk=${pk} AND end_date>=? AND use_status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
+        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND academy_category_pk=${pk} AND end_date>=? AND status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
         is_exist = is_exist?.result;
+        console.log(is_exist)
         if (is_exist.length > 0) {
         } else {
             return response(req, res, -150, "권한이 없습니다.", [])
