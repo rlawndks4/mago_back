@@ -133,8 +133,12 @@ const onSignUp = async (req, res) => {
         const nickname = req.body.nickname ?? "";
         const phone = req.body.phone ?? "";
         const address = req.body.address ?? "";
-        const address_detail = req.body.address_detail ?? 0;
-        const zip_code = req.body.zip_code ?? 0;
+        const address_detail = req.body.address_detail ?? "";
+        const zip_code = req.body.zip_code ?? "";
+        const account_holder = req.body.account_holder ?? "";
+        const bank_name = req.body.bank_name ?? "";
+        const account_number = req.body.account_number ?? "";
+        const manager_note = req.body.manager_note ?? "";
         const user_level = req.body.user_level ?? 0;
         const type_num = req.body.type_num ?? 0;
         const profile_img = req.body.profile_img ?? "";
@@ -180,8 +184,8 @@ const onSignUp = async (req, res) => {
                                     return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
                                 }
 
-                                sql = 'INSERT INTO user_table (id, pw, name, nickname , phone, user_level, type, profile_img, address, address_detail, zip_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-                                await db.query(sql, [id, hash, name, nickname, phone, user_level, type_num, profile_img, address, address_detail, zip_code], async (err, result) => {
+                                sql = 'INSERT INTO user_table (id, pw, name, nickname , phone, user_level, type, profile_img, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                                await db.query(sql, [id, hash, name, nickname, phone, user_level, type_num, profile_img, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note], async (err, result) => {
 
                                     if (err) {
                                         console.log(err)
@@ -356,7 +360,7 @@ const getMyInfo = async (req, res) => {
 }
 const editMyInfo = (req, res) => {
     try {
-        let { pw, nickname, newPw, phone, id, zip_code, address, address_detail, typeNum } = req.body;
+        let { pw, nickname, newPw, phone, id, zip_code, address, address_detail, account_holder, bank_name, account_number, typeNum } = req.body;
         const decode = checkLevel(req.cookies.token, 0)
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
@@ -365,7 +369,7 @@ const editMyInfo = (req, res) => {
             return response(req, res, -150, "잘못된 접근입니다.", [])
         }
         if (typeNum == 0) {
-            let result = insertQuery("UPDATE user_table SET zip_code=?, address=?, address_detail=? WHERE pk=?", [zip_code, address, address_detail, decode?.pk]);
+            let result = insertQuery("UPDATE user_table SET zip_code=?, address=?, address_detail=?, account_holder=?, bank_name=?, account_number=? WHERE pk=?", [zip_code, address, address_detail, account_holder, bank_name, account_number, decode?.pk]);
             return response(req, res, 100, "success", []);
         } else {
             crypto.pbkdf2(pw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
@@ -757,6 +761,10 @@ const updateUser = async (req, res) => {
         const address = req.body.address ?? "";
         const address_detail = req.body.address_detail ?? "";
         const zip_code = req.body.zip_code ?? "";
+        const account_holder = req.body.account_holder ?? "";
+        const bank_name = req.body.bank_name ?? "";
+        const account_number = req.body.account_number ?? "";
+        const manager_note = req.body.manager_note ?? "";
 
         const user_level = req.body.user_level ?? 0;
 
@@ -779,7 +787,7 @@ const updateUser = async (req, res) => {
                 }
             })
         }
-        await db.query("UPDATE user_table SET id=?, name=?, nickname=?, phone=?, user_level=?, address=?, address_detail=?, zip_code=? WHERE pk=?", [id, name, nickname, phone, user_level, address, address_detail, zip_code, pk], (err, result) => {
+        await db.query("UPDATE user_table SET id=?, name=?, nickname=?, phone=?, user_level=?, address=?, address_detail=?, zip_code=?, account_holder=?, bank_name=?, account_number=?, manager_note=? WHERE pk=?", [id, name, nickname, phone, user_level, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note, pk], (err, result) => {
             if (err) {
                 console.log(err)
                 return response(req, res, -200, "서버에러발생", [])
@@ -1073,7 +1081,7 @@ const getAcademyList = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>='${returnMoment()}'  ORDER BY pk DESC`,);
+        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>='${returnMoment().substring(0, 10)}' AND use_status=1  ORDER BY pk DESC`,);
         my_enrolment_list = my_enrolment_list?.result;
         let academy_pk_list = [];
         for (var i = 0; i < my_enrolment_list.length; i++) {
@@ -1118,7 +1126,7 @@ const getMyAcademyClasses = async (req, res) => {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
         let master_pk = req.body.master_pk;
-        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
+        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=? AND use_status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
         my_enrolment_list = my_enrolment_list?.result;
         let academy_pk_list = [];
         if (master_pk) {
@@ -1148,7 +1156,7 @@ const getMyAcademyClass = async (req, res) => {//강의실 입성시 구독여�
             return response(req, res, -150, "로그인 후 이용 가능합니다.", [])
         }
         const { pk } = req.body;
-        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND academy_category_pk=${pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
+        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND academy_category_pk=${pk} AND end_date>=? AND use_status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
         is_exist = is_exist?.result;
         if (is_exist.length > 0) {
         } else {
@@ -1170,7 +1178,7 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
         }
         let { pk, page, page_cut } = req.body;
         page_cut = 10;
-        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND academy_category_pk=${pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
+        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND academy_category_pk=${pk} AND end_date>=? AND use_status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
         is_exist = is_exist?.result;
         if (is_exist.length > 0) {
         } else {
@@ -2466,7 +2474,9 @@ const getOptionObjBySchema = async (schema, whereStr) => {
         option = option?.result[0];
         obj = {
             people_num: { title: '총 수강인원', content: commarNumber(option?.people_num ?? 0) },
-            sum_price: { title: '총 결제금액', content: commarNumber(option?.sum_price ?? 0) }
+        }
+        if(!whereStr.includes('status=0')){
+            obj.sum_price = { title: '총 결제금액', content: commarNumber(option?.sum_price ?? 0) }
         }
     }
     return obj;
@@ -2476,7 +2486,7 @@ const getItems = async (req, res) => {
         let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
         let sql = `SELECT * FROM ${table}_table `;
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
-
+        console.log(req.body)
         let whereStr = " WHERE 1=1 ";
         if (level) {
             whereStr += ` AND ${table}_table.user_level=${level} `;
@@ -2615,6 +2625,9 @@ const onSubscribe = async (req, res) => {
             return response(req, res, -150, "회원전용 메뉴입니다.", []);
         }
         let { item_pk, type_num, bag_pk } = req.body;
+        if(type_num==1){
+            return response(req, res, -100, "잘못된 접근 입니다.", []);
+        }
 
         let bag_content = {};
         if (bag_pk) {
@@ -2623,8 +2636,12 @@ const onSubscribe = async (req, res) => {
             item_pk = bag_content?.academy_category_pk;
             type_num = 1;
         }
-
-        let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item_pk} AND end_date >= '${returnMoment()}'`);
+        let is_already_bag = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=0 AND academy_category_pk=${item_pk} AND end_date >= '${returnMoment().substring(0, 10)}'`);
+        is_already_bag = is_already_bag?.result;
+        if (is_already_bag.length > 0) {
+            return response(req, res, -100, "이미 담긴 상품 입니다.", []);
+        }
+        let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item_pk} AND end_date >= '${returnMoment().substring(0, 10)}'`);
         is_already_subscribe = is_already_subscribe?.result;
         if (is_already_subscribe.length > 0) {
             return response(req, res, -100, "현재 이용중인 구독상품 입니다.", []);
@@ -2685,7 +2702,7 @@ const getSubscribe = async (req, res) => {
             type_num = 1;
         }
 
-        let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item_pk} AND end_date >= '${returnMoment()}'`);
+        let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item_pk} AND end_date >= '${returnMoment().substring(0, 10)}'`);
         is_already_subscribe = is_already_subscribe?.result;
         if (is_already_subscribe.length > 0) {
             return response(req, res, -100, "현재 이용중인 구독상품 입니다.", []);
@@ -3008,7 +3025,7 @@ const getAddressByText = async (req, res) => {
         let client_id = 'y7ilf087qu';
         let client_secret = '7J780cymrcHrnGs9hR47bXb9myEkxlTqZ95yMSbb';
         let api_url = 'https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode'; // json
-        if(!text){
+        if (!text) {
             return response(req, res, -100, "주소명을 입력 후 검색 버튼을 눌러주세요.", result);
         }
         const coord = await axios.get(`${api_url}`, {
@@ -3031,16 +3048,18 @@ const getAddressByText = async (req, res) => {
                     road_address: coord.data.addresses[i].roadAddress,
                     address: coord.data.addresses[i].jibunAddress
                 }
-                console.log(coord.data.addresses[i].addressElements[8])
                 for (var j = 0; j < coord.data.addresses[i].addressElements.length; j++) {
                     if (coord.data.addresses[i].addressElements[j]?.types[0] == 'POSTAL_CODE') {
                         result[i].zip_code = coord.data.addresses[i].addressElements[j]?.longName;
                     }
+                    if (coord.data.addresses[i].addressElements[j]?.types[0] == 'LAND_NUMBER') {
+                        result[i].land_number = coord.data.addresses[i].addressElements[j]?.longName;
+                    }
                 }
             }
-            if(result.length>0){
+            if (result.length > 0) {
                 return response(req, res, 100, "success", result);
-            }else{
+            } else {
                 return response(req, res, -100, "올바르지 않은 주소입니다. 주소를 다시 입력해 주세요.", result);
             }
         }
@@ -3050,7 +3069,7 @@ const getAddressByText = async (req, res) => {
     }
 }
 const isOrdered = async (decode, item) => {
-    let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item?.pk} AND end_date >= '${returnMoment()}'`);
+    let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item?.pk} AND end_date >= '${returnMoment().substring(0, 10)}' AND use_status=1 `);
     is_already_subscribe = is_already_subscribe?.result;
     console.log(is_already_subscribe)
     return is_already_subscribe.length > 0 ? true : false;
