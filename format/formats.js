@@ -4,13 +4,6 @@ const listFormatBySchema = (schema, data_) => {
     let option_list = {};
     if (schema == 'academy_category') {
         option_list = {
-            difficulty:[
-                { name: '왕초보', val: 1 },
-                { name: '검색기', val: 2 },
-                { name: '단타', val: 3 },
-                { name: '종목발굴', val: 4 },
-                { name: '기억분석', val: 5 },
-            ],
         }
         for (var i = 0; i < data.length; i++) {
             for(var j = 0;j<Object.keys(option_list).length;j++){

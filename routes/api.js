@@ -3039,8 +3039,8 @@ const getAddressByText = async (req, res) => {
             return response(req, res, 100, "success", result);
         }
     } catch (e) {
-        console.log(e)
-        return response(req, res, -200, "서버 에러 발생", [])
+        console.log(e);
+        return response(req, res, -200, "서버 에러 발생", []);
     }
 }
 const isOrdered = async (decode, item) => {
@@ -3099,7 +3099,7 @@ const onKeyrecieve = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0)
         if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", [])
+            return response(req, res, -150, "권한이 없습니다.", []);
         }
         let body = { ...req.body };
         let params = { ...req.params };
