@@ -3008,7 +3008,9 @@ const getAddressByText = async (req, res) => {
         let client_id = 'y7ilf087qu';
         let client_secret = '7J780cymrcHrnGs9hR47bXb9myEkxlTqZ95yMSbb';
         let api_url = 'https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode'; // json
-
+        if(!text){
+            return response(req, res, -100, "주소명을 입력 후 검색 버튼을 눌러주세요.", result);
+        }
         const coord = await axios.get(`${api_url}`, {
             params: {
                 query: text,
@@ -3039,7 +3041,7 @@ const getAddressByText = async (req, res) => {
             if(result.length>0){
                 return response(req, res, 100, "success", result);
             }else{
-                return response(req, res, -100, "없는 주소 입니다.", result);
+                return response(req, res, -100, "올바르지 않은 주소입니다. 주소를 다시 입력해 주세요.", result);
             }
         }
     } catch (e) {
