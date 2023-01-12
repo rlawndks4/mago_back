@@ -3138,11 +3138,11 @@ const onKeyrecieve = async (req, res) => {
                 let result  = await orderInsert(decode, body, params);
             }
         }
-        return "";
+        res.send("");
     } 
     catch (err) 
     {
-        return err;
+        res.send(err);
     }
 }
 
