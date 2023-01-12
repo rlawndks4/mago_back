@@ -3123,11 +3123,12 @@ const orderInsert = async (decode, body, params) => {
 }
 const onKeyrecieve = async (req, res) => {    
     let body = { ...req.body };
-    body.allat_result_msg.CharsSet = "euc-kr";
-
     let js = `<script>
     if(window.opener != undefined)
+    {
         opener.result_submit('${body?.allat_result_cd}', '${body?.allat_result_msg}', '${body?.allat_enc_data}');
+        window.close();
+    }
     else
         parent.result_submit('${body?.allat_result_cd}', '${body?.allat_result_msg}', '${body?.allat_enc_data}');
     </script>`;    
@@ -3138,8 +3139,7 @@ const onKeyrecieve = async (req, res) => {
             return response(req, res, -150, "권한이 없습니다.", []);
         else
         {
-            let params = { ...req.params };
-            
+            let params = { ...req.params };            
             if (body?.allat_result_cd == '0000') 
             {
                 let result  = await orderInsert(decode, body, params);
