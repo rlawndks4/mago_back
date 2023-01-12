@@ -3136,16 +3136,13 @@ const onKeyrecieve = async (req, res) => {
             if (body?.allat_result_cd == '0000') 
             {
                 let result  = await orderInsert(decode, body, params);
-                let code = result['code'] == 1 ? 100 : result['code'];
-                return response(req, res, code, result['obj']['message'],result['obj']);
             }
-            else
-                return response(req, res, body?.allat_result_cd, body?.allat_result_msg, []);
         }
+        return "";
     } 
     catch (err) 
     {
-        return response(req, res, -100, err, []);
+        return err;
     }
 }
 
