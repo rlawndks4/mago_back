@@ -3122,38 +3122,32 @@ const orderInsert = async (decode, body, params) => {
     return result;
 }
 const onKeyrecieve = async (req, res) => {
-    try {
+    try 
+    {
         const decode = checkLevel(req.cookies.token, 0)
-        if (!decode) {
+        if (!decode)
             return response(req, res, -150, "권한이 없습니다.", []);
-        }
-        let body = { ...req.body };
-        let params = { ...req.params };
-
-        if (body?.allat_result_cd != '0000') {
+        else
+        {
+            let body = { ...req.body };
+            let params = { ...req.params };
             body.allat_result_msg.CharsSet = "euc-kr";
-            if (params?.device == 'pc') {
-                return res.send(`<script>alert('${body?.allat_result_cd} : ${body?.allat_result_msg}'); window.close();</script>`);
-            } else {
-                return res.send(`<script>parent.Allat_Mobile_Close(); alert('${body?.allat_result_cd} : ${body?.allat_result_msg}'); window.location.href = '/';</script>`);
+            
+            if (body?.allat_result_cd == '0000') 
+            {
+                let result  = await orderInsert(decode, body, params);
+                let code = result['code'] == 1 ? 100 : result['code'];
+                return response(req, res, code, result['obj']['message'],result['obj']);
             }
-        } else {
-            let result = await orderInsert(decode, body, params);
-            if (params?.device == 'pc') {
-                return res.send(`<script>alert('${result['obj']['message']}'); window.close();</script>`);
-            } else {
-                if (result['code'] == 1)
-                    return res.send(`<script>parent.Allat_Mobile_Close(); alert('${result['obj']['message']}'); window.location.href = '/mypage';</script>`);
-                else
-                    return res.send(`<script>parent.Allat_Mobile_Close(); alert('${result['obj']['message']}'); window.location.href = '/';</script>`);
-            }
+            else
+                return response(req, res, body?.allat_result_cd, body?.allat_result_msg, []);
         }
-    } catch (err) {
-        res.send(`<script>parent.Allat_Mobile_Close(); alert('${err}'); window.location.href = '/';</script>`);
+    } 
+    catch (err) 
+    {
+        return response(req, res, -100, err, []);
     }
 }
-
-
 
 module.exports = {
     onLoginById, getUserToken, onLogout, checkExistId, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo,//auth
