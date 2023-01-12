@@ -599,6 +599,27 @@ const checkExistId = (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+const checkExistIdByManager = (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 40)
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        const id = req.body.id;
+        db.query(`SELECT * FROM user_table WHERE id=? `, [id], (err, result) => {
+            if (err) {
+                console.log(err)
+                return response(req, res, -200, "서버 에러 발생", [])
+            } else {
+                return response(req, res, 100, "success", result[0])
+            }
+        })
+
+    } catch (e) {
+        console.log(e)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
 const checkExistNickname = (req, res) => {
     try {
         const nickname = req.body.nickname;
@@ -1652,8 +1673,10 @@ const addItem = async (req, res) => {
         let sql = `INSERT INTO ${table}_table (${keys.join()}) VALUES (${values_str}) `;
         await db.beginTransaction();
         let result = await insertQuery(sql, values);
-        let result2 = await insertQuery(`UPDATE ${table}_table SET sort=? WHERE pk=?`, [result?.result?.insertId, result?.result?.insertId]);
-
+        let not_use_sort = ['subscribe'];
+        if(!not_use_sort.includes(table)){
+            let result2 = await insertQuery(`UPDATE ${table}_table SET sort=? WHERE pk=?`, [result?.result?.insertId, result?.result?.insertId]);
+        }
         await db.commit();
         return response(req, res, 200, "success", []);
 
@@ -1732,6 +1755,7 @@ const updateItem = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
+        console.log(req.body)
         let body = { ...req.body };
         let use_manager_pk = ['request'];
         delete body['table'];
@@ -1786,6 +1810,8 @@ const updateItem = async (req, res) => {
         values.push(req.body.pk);
         await db.beginTransaction();
         let result = await insertQuery(sql, values);
+        console.log(sql)
+        console.log(values)
         await db.commit();
         return response(req, res, 200, "success", []);
 
@@ -2476,7 +2502,7 @@ const getOptionObjBySchema = async (schema, whereStr) => {
         obj = {
             people_num: { title: '총 수강인원', content: commarNumber(option?.people_num ?? 0) },
         }
-        if(!whereStr.includes('status=0')){
+        if (!whereStr.includes('status=0')) {
             obj.sum_price = { title: '총 결제금액', content: commarNumber(option?.sum_price ?? 0) }
         }
     }
@@ -2626,7 +2652,7 @@ const onSubscribe = async (req, res) => {
             return response(req, res, -150, "회원전용 메뉴입니다.", []);
         }
         let { item_pk, type_num, bag_pk } = req.body;
-        if(type_num==1){
+        if (type_num == 1) {
             return response(req, res, -100, "잘못된 접근 입니다.", []);
         }
 
@@ -3121,7 +3147,7 @@ const orderInsert = async (decode, body, params) => {
     }
     return result;
 }
-const onKeyrecieve = async (req, res) => {    
+const onKeyrecieve = async (req, res) => {
     let body = { ...req.body };
     let js = `<script>
     if(window.opener != undefined)
@@ -3131,30 +3157,26 @@ const onKeyrecieve = async (req, res) => {
     }
     else
         parent.result_submit('${body?.allat_result_cd}', '${body?.allat_result_msg}', '${body?.allat_enc_data}');
-    </script>`;    
-    try 
-    {
+    </script>`;
+    try {
         const decode = checkLevel(req.cookies.token, 0)
         if (!decode)
             return response(req, res, -150, "권한이 없습니다.", []);
-        else
-        {
-            let params = { ...req.params };            
-            if (body?.allat_result_cd == '0000') 
-            {
-                let result  = await orderInsert(decode, body, params);
+        else {
+            let params = { ...req.params };
+            if (body?.allat_result_cd == '0000') {
+                let result = await orderInsert(decode, body, params);
             }
         }
         res.send(js);
-    } 
-    catch (err) 
-    {
+    }
+    catch (err) {
         res.send(js);
     }
 }
 
 module.exports = {
-    onLoginById, getUserToken, onLogout, checkExistId, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo,//auth
+    onLoginById, getUserToken, onLogout, checkExistId, checkExistIdByManager, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo,//auth
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
