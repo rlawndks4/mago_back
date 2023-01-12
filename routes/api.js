@@ -3121,7 +3121,16 @@ const orderInsert = async (decode, body, params) => {
     }
     return result;
 }
-const onKeyrecieve = async (req, res) => {
+const onKeyrecieve = async (req, res) => {    
+    let body = { ...req.body };
+    body.allat_result_msg.CharsSet = "euc-kr";
+
+    let js = `<script>
+    if(window.opener != undefined)
+        opener.result_submit('${body?.allat_result_cd}', '${body?.allat_result_msg}', '${body?.allat_enc_data}');
+    else
+        parent.result_submit('${body?.allat_result_cd}', '${body?.allat_result_msg}', '${body?.allat_enc_data}');
+    </script>`;    
     try 
     {
         const decode = checkLevel(req.cookies.token, 0)
@@ -3129,20 +3138,18 @@ const onKeyrecieve = async (req, res) => {
             return response(req, res, -150, "권한이 없습니다.", []);
         else
         {
-            let body = { ...req.body };
             let params = { ...req.params };
-            body.allat_result_msg.CharsSet = "euc-kr";
             
             if (body?.allat_result_cd == '0000') 
             {
                 let result  = await orderInsert(decode, body, params);
             }
         }
-        res.send("");
+        res.send(js);
     } 
     catch (err) 
     {
-        res.send(err);
+        res.send(js);
     }
 }
 
