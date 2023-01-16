@@ -358,7 +358,7 @@ const getMyInfo = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const editMyInfo = (req, res) => {
+const editMyInfo = async (req, res) => {
     try {
         let { pw, nickname, newPw, phone, id, zip_code, address, address_detail, account_holder, bank_name, account_number, typeNum } = req.body;
         const decode = checkLevel(req.cookies.token, 0)
@@ -368,88 +368,75 @@ const editMyInfo = (req, res) => {
         if (decode?.id != id) {
             return response(req, res, -150, "잘못된 접근입니다.", [])
         }
+        let user = await dbQueryList('SELECT * FROM user_table WHERE pk=?', [decode?.pk]);
+        user = user?.result[0];
+        pw = await makeHash(pw);
+        pw = pw?.data;
+        if (user?.pw != pw) {
+            return response(req, res, -100, "비밀번호가 일치하지 않습니다.", [])
+        }
         if (typeNum == 0) {
             let result = insertQuery("UPDATE user_table SET zip_code=?, address=?, address_detail=?, account_holder=?, bank_name=?, account_number=? WHERE pk=?", [zip_code, address, address_detail, account_holder, bank_name, account_number, decode?.pk]);
             return response(req, res, 100, "success", []);
         } else {
-            crypto.pbkdf2(pw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
-                // bcrypt.hash(pw, salt, async (err, hash) => {
-                let hash = decoded.toString('base64')
 
-                if (err) {
-                    console.log(err)
-                    return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
-                }
-
-                await db.query("SELECT * FROM user_table WHERE id=? AND pw=?", [id, hash], async (err, result) => {
+            if (newPw) {
+                await crypto.pbkdf2(newPw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
+                    // bcrypt.hash(pw, salt, async (err, hash) => {
+                    let new_hash = decoded.toString('base64')
                     if (err) {
-                        console.log(err);
-                        return response(req, res, -100, "서버 에러 발생", [])
-                    } else {
-                        if (result.length > 0) {
-                            if (newPw) {
-                                await crypto.pbkdf2(newPw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
-                                    // bcrypt.hash(pw, salt, async (err, hash) => {
-                                    let new_hash = decoded.toString('base64')
-                                    if (err) {
-                                        console.log(err)
-                                        return response(req, res, -200, "새 비밀번호 암호화 도중 에러 발생", [])
-                                    }
-                                    await db.query("UPDATE user_table SET pw=? WHERE id=?", [new_hash, id], (err, result) => {
-                                        if (err) {
-                                            console.log(err)
-                                            return response(req, res, -100, "서버 에러 발생", []);
-                                        } else {
-                                            return response(req, res, 100, "success", []);
-                                        }
-                                    })
-                                })
-                            } else if (nickname || phone) {
-                                let selectSql = "";
-                                let updateSql = "";
-                                let zColumn = [];
-                                if (nickname) {
-                                    selectSql = "SELECT * FROM user_table WHERE nickname=? AND id!=?"
-                                    updateSql = "UPDATE user_table SET nickname=? WHERE id=?";
-                                    zColumn.push(nickname);
-                                } else if (phone) {
-                                    selectSql = "SELECT * FROM user_table WHERE phone=? AND id!=?"
-                                    updateSql = "UPDATE user_table SET phone=? WHERE id=?";
-                                    zColumn.push(phone);
-                                }
-                                zColumn.push(id);
-                                await db.query(selectSql, zColumn, async (err, result1) => {
-                                    if (err) {
-                                        console.log(err)
-                                        return response(req, res, -100, "서버 에러 발생", []);
-                                    } else {
-                                        if (result1.length > 0) {
-                                            let message = "";
-                                            if (nickname) {
-                                                message = "이미 사용중인 닉네임 입니다.";
-                                            } else if (phone) {
-                                                message = "이미 사용중인 전화번호 입니다.";
-                                            }
-                                            return response(req, res, -50, message, []);
-                                        } else {
-                                            await db.query(updateSql, zColumn, (err, result2) => {
-                                                if (err) {
-                                                    console.log(err)
-                                                    return response(req, res, -100, "서버 에러 발생", []);
-                                                } else {
-                                                    return response(req, res, 100, "success", []);
-                                                }
-                                            })
-                                        }
-                                    }
-                                })
-                            }
+                        console.log(err)
+                        return response(req, res, -200, "새 비밀번호 암호화 도중 에러 발생", [])
+                    }
+                    await db.query("UPDATE user_table SET pw=? WHERE id=?", [new_hash, id], (err, result) => {
+                        if (err) {
+                            console.log(err)
+                            return response(req, res, -100, "서버 에러 발생", []);
                         } else {
-                            return response(req, res, -50, "비밀번호가 일치하지 않습니다.", [])
+                            return response(req, res, 100, "success", []);
+                        }
+                    })
+                })
+            } else if (nickname || phone) {
+                let selectSql = "";
+                let updateSql = "";
+                let zColumn = [];
+                if (nickname) {
+                    selectSql = "SELECT * FROM user_table WHERE nickname=? AND id!=?"
+                    updateSql = "UPDATE user_table SET nickname=? WHERE id=?";
+                    zColumn.push(nickname);
+                } else if (phone) {
+                    selectSql = "SELECT * FROM user_table WHERE phone=? AND id!=?"
+                    updateSql = "UPDATE user_table SET phone=? WHERE id=?";
+                    zColumn.push(phone);
+                }
+                zColumn.push(id);
+                await db.query(selectSql, zColumn, async (err, result1) => {
+                    if (err) {
+                        console.log(err)
+                        return response(req, res, -100, "서버 에러 발생", []);
+                    } else {
+                        if (result1.length > 0) {
+                            let message = "";
+                            if (nickname) {
+                                message = "이미 사용중인 닉네임 입니다.";
+                            } else if (phone) {
+                                message = "이미 사용중인 전화번호 입니다.";
+                            }
+                            return response(req, res, -50, message, []);
+                        } else {
+                            await db.query(updateSql, zColumn, (err, result2) => {
+                                if (err) {
+                                    console.log(err)
+                                    return response(req, res, -100, "서버 에러 발생", []);
+                                } else {
+                                    return response(req, res, 100, "success", []);
+                                }
+                            })
                         }
                     }
                 })
-            })
+            }
         }
     } catch (e) {
         console.log(e)
@@ -2519,7 +2506,7 @@ const getOneEvent = (req, res) => {
 const getOptionObjBySchema = async (schema, whereStr) => {
     let obj = {};
     if (schema == 'subscribe') {
-        let sql = ` ${sqlJoinFormat(schema,``,"",`SELECT COUNT(*) AS people_num, SUM(${schema}_table.price) AS sum_price FROM ${schema}_table `)?.page_sql} ${whereStr}`;
+        let sql = ` ${sqlJoinFormat(schema, ``, "", `SELECT COUNT(*) AS people_num, SUM(${schema}_table.price) AS sum_price FROM ${schema}_table `)?.page_sql} ${whereStr}`;
         let option = await dbQueryList(sql);
         option = option?.result[0];
         obj = {
