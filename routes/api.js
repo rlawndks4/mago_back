@@ -1028,7 +1028,7 @@ const getHomeContent = async (req, res) => {
             { table: 'banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'best_academy', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4', type: 'list' },
             { table: 'best_comment', sql: 'SELECT * FROM comment_table WHERE is_best=1 AND category_pk=1 ORDER BY pk DESC LIMIT 4', type: 'list' },
-            { table: 'notice', sql: 'SELECT notice_table.*, user_table.nickname FROM notice_table LEFT JOIN user_table ON notice_table.user_pk=user_table.pk WHERE notice_table.status=1 ORDER BY notice_table.sort DESC LIMIT 7', type: 'list' },
+            { table: 'notice', sql: 'SELECT notice_table.*, user_table.nickname FROM notice_table LEFT JOIN user_table ON notice_table.user_pk=user_table.pk WHERE notice_table.status=1 ORDER BY notice_table.sort DESC LIMIT 3', type: 'list' },
             { table: 'app', sql: 'SELECT * FROM app_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
             { table: 'main_video', sql: 'SELECT * FROM main_video_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
             { table: 'best_review', sql: '', type: 'list' },
