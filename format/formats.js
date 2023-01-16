@@ -12,6 +12,11 @@ const listFormatBySchema = (schema, data_) => {
             }
         }
     }
+    if(schema=='subscribe'){
+        for (var i = 0; i < data.length; i++) {
+            data[i].type = (data[i]?.type==0?'카드결제':'무통장입금');
+        }
+    }
     return data;
 }
 const sqlJoinFormat = (schema, sql_, order_, page_sql_) => {

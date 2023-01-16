@@ -2520,7 +2520,7 @@ const getOptionObjBySchema = async (schema, whereStr) => {
 }
 const getItems = async (req, res) => {
     try {
-        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
+        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date,type } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
         let sql = `SELECT * FROM ${table}_table `;
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
         let keyword_columns = getKewordListBySchema(table);
@@ -2533,6 +2533,9 @@ const getItems = async (req, res) => {
         }
         if (status) {
             whereStr += ` AND ${table}_table.status=${status} `;
+        }
+        if (type) {
+            whereStr += ` AND ${table}_table.type=${type} `;
         }
         if (user_pk) {
             whereStr += ` AND ${table}_table.user_pk=${user_pk} `;
