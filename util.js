@@ -357,6 +357,40 @@ const makeHash = (pw_) => {
         })
     })
 }
+const getKewordListBySchema = (schema_) => {
+    let schema = schema_;
+    let list = [];
+    if (schema == 'user') {
+        list = ['id', 'name', 'phone', 'nickname'];
+    } else if (schema == 'comment') {
+        list = ['user_table.id','user_table.nickname', 'note'];
+    }  else if (schema == 'subscribe') {
+        list = ['u_t.id','u_t.nickname', 'u_t.name','m_t.nickname','academy_category_table.title' ];
+    } else if (schema == 'academy_category') {
+        list = ['title','user_table.nickname'];
+    } else if (schema == 'academy') {
+        list = ['title'];
+    } else if (schema == 'app') {
+        list = ['name'];
+    } else if (schema == 'popup') {
+        list = ['link'];
+    } else if (schema == 'request') {
+        list = ['user_table.id','user_table.nickname', 'title'];
+    }else if (schema == 'faq') {
+        list = ['title'];
+    }else if (schema == 'event') {
+        list = ['title'];
+    }else if (schema == 'notice') {
+        list = ['title'];
+    }else if (schema == 'review') {
+        list = ['review_table.title','user_table.nickname'];
+    }else if (schema == 'alarm') {
+        list = [];
+    }else {
+        link = [];
+    }
+    return list;
+}
 const commarNumber = (num) => {
     let str = "";
     if (typeof num == "number") {
@@ -382,5 +416,5 @@ module.exports = {
     getUserPKArrStrWithNewPK, isNotNullOrUndefined,
     namingImagesPath, getSQLnParams,
     nullResponse, lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, tooMuchRequest,
-    queryPromise, makeHash, commarNumber
+    queryPromise, makeHash, commarNumber, getKewordListBySchema
 }

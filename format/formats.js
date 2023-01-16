@@ -20,28 +20,37 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_) => {
     let order = order_;
     if(schema=='academy_category'){
         sql = ` SELECT academy_category_table.*, user_table.nickname AS master_nickname FROM academy_category_table`;
+        page_sql += ` LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk `;
         sql += ` LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk `;
         order = 'academy_category_table.sort'
     }else if(schema=='notice'){
         sql = ` SELECT notice_table.*, user_table.nickname AS nickname FROM notice_table`;
+        page_sql += ` LEFT JOIN user_table ON notice_table.user_pk=user_table.pk `;
         sql += ` LEFT JOIN user_table ON notice_table.user_pk=user_table.pk `;
         order = 'notice_table.sort'
     }else if(schema=='request'){
         sql = ` SELECT request_table.*, user_table.nickname AS nickname, user_table.id AS id FROM request_table`;
+        page_sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
         sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
         order = 'pk'
     }else if(schema=='comment'){
         sql = ` SELECT comment_table.*, user_table.nickname AS nickname, user_table.id AS id FROM comment_table`;
+        page_sql += ` LEFT JOIN user_table ON comment_table.user_pk=user_table.pk `;
         sql += ` LEFT JOIN user_table ON comment_table.user_pk=user_table.pk `;
         order = 'pk'
     }else if(schema=='subscribe'){
         sql = ` SELECT subscribe_table.*, u_t.nickname AS nickname, u_t.id AS id, u_t.name AS user_name, u_t.phone AS phone,u_t.bank_name AS bank_name,u_t.account_number AS account_number,u_t.account_holder AS account_holder, academy_category_table.title AS title, academy_category_table.end_date AS end_date, m_t.nickname AS master_nickname FROM subscribe_table`;
+        page_sql += ` LEFT JOIN user_table AS u_t ON subscribe_table.user_pk=u_t.pk `;
+        page_sql += ` LEFT JOIN academy_category_table ON subscribe_table.academy_category_pk=academy_category_table.pk `;
+        page_sql += ` LEFT JOIN user_table AS m_t ON subscribe_table.master_pk=m_t.pk `;
         sql += ` LEFT JOIN user_table AS u_t ON subscribe_table.user_pk=u_t.pk `;
         sql += ` LEFT JOIN academy_category_table ON subscribe_table.academy_category_pk=academy_category_table.pk `;
         sql += ` LEFT JOIN user_table AS m_t ON subscribe_table.master_pk=m_t.pk `;
         order = 'pk'
     }else if(schema=='review'){
         sql = ` SELECT review_table.*, user_table.nickname AS nickname, user_table.id AS id, academy_category_table.title AS item_title FROM review_table`;
+        page_sql += ` LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
+        page_sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
         sql += ` LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
         sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
         order = 'pk'

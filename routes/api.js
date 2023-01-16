@@ -12,7 +12,7 @@ const when = require('when')
 let iconv = require('iconv-lite');
 const { checkLevel, getSQLnParams, getUserPKArrStrWithNewPK,
     isNotNullOrUndefined, namingImagesPath, nullResponse,
-    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber
+    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber, getKewordListBySchema
 } = require('../util')
 const {
     getRowsNumWithKeyword, getRowsNum, getAllDatas,
@@ -594,6 +594,28 @@ const checkExistId = (req, res) => {
             }
         })
 
+    } catch (e) {
+        console.log(e)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+const checkPassword = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 0)
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        let pw = req.body.pw;
+        let user = await dbQueryList(`SELECT * FROM user_table WHERE pk=?`, [decode?.pk]);
+        user = user?.result[0];
+
+        pw = await makeHash(pw);
+        pw = pw?.data;
+        if (pw == user?.pw) {
+            return response(req, res, 100, "success", [])
+        } else {
+            return response(req, res, -100, "비밀번호가 일치하지 않습니다.", [])
+        }
     } catch (e) {
         console.log(e)
         return response(req, res, -200, "서버 에러 발생", [])
@@ -1674,7 +1696,7 @@ const addItem = async (req, res) => {
         await db.beginTransaction();
         let result = await insertQuery(sql, values);
         let not_use_sort = ['subscribe'];
-        if(!not_use_sort.includes(table)){
+        if (!not_use_sort.includes(table)) {
             let result2 = await insertQuery(`UPDATE ${table}_table SET sort=? WHERE pk=?`, [result?.result?.insertId, result?.result?.insertId]);
         }
         await db.commit();
@@ -2497,7 +2519,8 @@ const getOneEvent = (req, res) => {
 const getOptionObjBySchema = async (schema, whereStr) => {
     let obj = {};
     if (schema == 'subscribe') {
-        let option = await dbQueryList(`SELECT COUNT(*) AS people_num, SUM(price) AS sum_price FROM ${schema}_table ${whereStr}`);
+        let sql = ` ${sqlJoinFormat(schema,``,"",`SELECT COUNT(*) AS people_num, SUM(${schema}_table.price) AS sum_price FROM ${schema}_table `)?.page_sql} ${whereStr}`;
+        let option = await dbQueryList(sql);
         option = option?.result[0];
         obj = {
             people_num: { title: '총 수강인원', content: commarNumber(option?.people_num ?? 0) },
@@ -2513,7 +2536,7 @@ const getItems = async (req, res) => {
         let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
         let sql = `SELECT * FROM ${table}_table `;
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
-        console.log(req.body)
+        let keyword_columns = getKewordListBySchema(table);
         let whereStr = " WHERE 1=1 ";
         if (level) {
             whereStr += ` AND ${table}_table.user_level=${level} `;
@@ -2536,17 +2559,19 @@ const getItems = async (req, res) => {
         if (difficulty) {
             whereStr += ` AND ${table}_table.difficulty=${difficulty} `;
         }
-        if(price_is_minus){
-            whereStr += ` AND ${table}_table.price ${price_is_minus==1?' < 0 ':' > 0 '} `;
+        if (price_is_minus) {
+            whereStr += ` AND ${table}_table.price ${price_is_minus == 1 ? ' < 0 ' : ' > 0 '} `;
         }
-        if(start_date&&end_date){
+        if (start_date && end_date) {
             whereStr += ` AND (${table}_table.date BETWEEN '${start_date} 00:00:00' AND '${end_date} 23:59:59' )`;
         }
         if (keyword) {
-            if (table == 'comment') {
-                whereStr += ` AND (item_title LIKE '%${keyword}%' OR user_nickname LIKE '%${keyword}%' OR note LIKE '%${keyword}%') `;
-            } else {
-                whereStr += ` AND title LIKE '%${keyword}%' `;
+            if (keyword_columns?.length > 0) {
+                whereStr += " AND (";
+                for (var i = 0; i < keyword_columns.length; i++) {
+                    whereStr += ` ${i != 0 ? 'OR' : ''} ${keyword_columns[i]} LIKE '%${keyword}%' `;
+                }
+                whereStr += ")";
             }
         }
         if (!page_cut) {
@@ -3182,7 +3207,7 @@ const onKeyrecieve = async (req, res) => {
 }
 
 module.exports = {
-    onLoginById, getUserToken, onLogout, checkExistId, checkExistIdByManager, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo,//auth
+    onLoginById, getUserToken, onLogout, checkExistId, checkPassword, checkExistIdByManager, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo,//auth
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
