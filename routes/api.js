@@ -2510,7 +2510,7 @@ const getOptionObjBySchema = async (schema, whereStr) => {
 }
 const getItems = async (req, res) => {
     try {
-        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
+        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
         let sql = `SELECT * FROM ${table}_table `;
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
         console.log(req.body)
@@ -2535,6 +2535,12 @@ const getItems = async (req, res) => {
         }
         if (difficulty) {
             whereStr += ` AND ${table}_table.difficulty=${difficulty} `;
+        }
+        if(price_is_minus){
+            whereStr += ` AND ${table}_table.price ${price_is_minus==1?' < 0 ':' > 0 '} `;
+        }
+        if(start_date&&end_date){
+            whereStr += ` AND (${table}_table.date BETWEEN '${start_date} 00:00:00' AND '${end_date} 23:59:59' )`;
         }
         if (keyword) {
             if (table == 'comment') {
