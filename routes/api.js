@@ -2514,7 +2514,7 @@ const getOptionObjBySchema = async (schema, whereStr) => {
         let cancel_people = await dbQueryList(sql2);
         cancel_people = cancel_people?.result[0];
         obj = {
-            people_num: { title: '총 수강인원', content: commarNumber(((option?.people_num ?? 0)-(cancel_people?.people_num ?? 0))) },
+            people_num: { title: '총 수강인원', content: commarNumber(((option?.people_num ?? 0) - (cancel_people?.people_num ?? 0))) },
         }
         if (!whereStr.includes('status=0')) {
             obj.sum_price = { title: '총 결제금액', content: commarNumber(option?.sum_price ?? 0) }
@@ -3122,10 +3122,10 @@ const getAddressByText = async (req, res) => {
     }
 }
 
-const checkClassStatus = async (req, res) =>{
+const checkClassStatus = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0);
-        if (!decode){
+        if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", []);
         }
         const pk = req.body.pk;
@@ -3135,7 +3135,7 @@ const checkClassStatus = async (req, res) =>{
             return response(req, res, -100, "마감된 상품입니다.", []);
         }
         let is_already_subscribe = await isOrdered(decode, item);
-        if(is_already_subscribe){
+        if (is_already_subscribe) {
             return response(req, res, -100, "이미 구독한 상품입니다.", []);
         }
         return response(req, res, 100, "success", item);
@@ -3205,6 +3205,10 @@ const orderInsert = async (decode, body, params) => {
 }
 const onKeyrecieve = async (req, res) => {
     let body = { ...req.body };
+    body['allat_result_msg'].CharSet = 'euc-kr';
+    if (body['allat_enc_data']) {
+        body['allat_enc_data'].CharSet = 'euc-kr';
+    }
     let js = `<script>
     if(window.opener != undefined)
     {
@@ -3216,9 +3220,9 @@ const onKeyrecieve = async (req, res) => {
     </script>`;
     try {
         const decode = checkLevel(req.cookies.token, 0)
-        if (!decode)
+        if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", []);
-        else {
+        } else {
             let params = { ...req.params };
             if (body?.allat_result_cd == '0000') {
                 let result = await orderInsert(decode, body, params);
