@@ -2510,8 +2510,11 @@ const getOptionObjBySchema = async (schema, whereStr) => {
         let sql = ` ${sqlJoinFormat(schema, ``, "", `SELECT COUNT(*) AS people_num, SUM(${schema}_table.price) AS sum_price FROM ${schema}_table `)?.page_sql} ${whereStr}`;
         let option = await dbQueryList(sql);
         option = option?.result[0];
+        let sql2 = ` ${sqlJoinFormat(schema, ``, "", `SELECT COUNT(*) AS people_num FROM ${schema}_table `)?.page_sql} ${whereStr} AND ${schema}_table.price < 0 `;
+        let cancel_people = await dbQueryList(sql2);
+        cancel_people = cancel_people?.result[0];
         obj = {
-            people_num: { title: '총 수강인원', content: commarNumber(option?.people_num ?? 0) },
+            people_num: { title: '총 수강인원', content: commarNumber(((option?.people_num ?? 0)-(cancel_people?.people_num ?? 0))) },
         }
         if (!whereStr.includes('status=0')) {
             obj.sum_price = { title: '총 결제금액', content: commarNumber(option?.sum_price ?? 0) }
