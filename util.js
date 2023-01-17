@@ -305,10 +305,10 @@ function response(req, res, code, message, data) {
         'data': data,
     }
     const decode = checkLevel(req.cookies.token, 0)
-    if (code < 0 || req.originalUrl.includes('login') || concentration_user_list.includes(decode?.pk)) {
-        logRequestResponse(req, resDict, decode);
+    // if (code < 0 || req.originalUrl.includes('login') || concentration_user_list.includes(decode?.pk)) {
+    //     logRequestResponse(req, resDict, decode);
 
-    }
+    // }
     res.send(resDict);
 }
 function nullResponse(req, res) {

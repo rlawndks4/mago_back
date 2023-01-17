@@ -516,6 +516,7 @@ const sendSms = (req, res) => {
     try {
         let receiver = req.body.receiver;
         const content = req.body.content;
+        console.log(req.body)
         sendAligoSms({ receivers: receiver, message: content }).then((result) => {
             if (result.result_code == '1') {
                 return response(req, res, 100, "success", [])
@@ -2520,7 +2521,7 @@ const getOptionObjBySchema = async (schema, whereStr) => {
 }
 const getItems = async (req, res) => {
     try {
-        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date,type } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
+        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date, type } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
         let sql = `SELECT * FROM ${table}_table `;
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
         let keyword_columns = getKewordListBySchema(table);
@@ -3067,6 +3068,7 @@ const setCountNotReadNoti = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+
 const getAddressByText = async (req, res) => {
     try {
         let { text } = req.body;
@@ -3116,18 +3118,48 @@ const getAddressByText = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", []);
     }
 }
+
+const checkClassStatus = async (req, res) =>{
+    try {
+        const decode = checkLevel(req.cookies.token, 0);
+        if (!decode){
+            return response(req, res, -150, "권한이 없습니다.", []);
+        }
+        const pk = req.body.pk;
+        let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${pk}`);
+        item = item?.result[0];
+        if (item?.is_deadline == 1) {
+            return response(req, res, -100, "마감된 상품입니다.", []);
+        }
+        let is_already_subscribe = await isOrdered(decode, item);
+        if(is_already_subscribe){
+            return response(req, res, -100, "이미 구독한 상품입니다.", []);
+        }
+        return response(req, res, 100, "success", item);
+    } catch (e) {
+        console.log(e);
+        return response(req, res, -200, "서버 에러 발생", []);
+    }
+}
 const isOrdered = async (decode, item) => {
     let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item?.pk} AND end_date >= '${returnMoment().substring(0, 10)}' AND use_status=1 `);
     is_already_subscribe = is_already_subscribe?.result;
     console.log(is_already_subscribe)
     return is_already_subscribe.length > 0 ? true : false;
 }
+
 const orderInsert = async (decode, body, params) => {
     let result = { 'code': -1, 'obj': {} };
     try {
         let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${params?.pk}`);
         item = item?.result[0];
+        if (item?.is_deadline == 1) {
+            result['code'] = 0;
+            result['obj']['message'] = '마감된 상품입니다.';
+            return result;
+        }
         let is_already_subscribe = await isOrdered(decode, item);
+
         if (!is_already_subscribe) {
             let price = (item?.price ?? 0) * (100 - item?.discount_percent ?? 0) / 100;
             let { data: resp } = await axios.post('https://divecebu.co.kr/divecebu/api/aynil/approval.php', { ...body, ...params, allat_amt: price });
@@ -3201,5 +3233,5 @@ module.exports = {
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
-    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent, getAcademyCategoryContent, getMasterContent, getReviewByMasterPk, onKeyrecieve
+    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, checkClassStatus, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent, getAcademyCategoryContent, getMasterContent, getReviewByMasterPk, onKeyrecieve
 };
