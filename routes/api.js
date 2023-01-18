@@ -1066,7 +1066,6 @@ const getHomeContent = async (req, res) => {
         for (var i = 0; i < (await result).length; i++) {
             result_obj[(await result[i])?.table] = (await result[i])?.data;
         }
-        console.log(result_obj['main_video'])
         return response(req, res, 100, "success", result_obj)
 
     } catch (err) {
@@ -1208,23 +1207,26 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
             return response(req, res, -150, "로그인 후 이용 가능합니다.", [])
         }
         let { pk, page, page_cut } = req.body;
+        console.log(req.body);
         page_cut = 10;
-        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND academy_category_pk=${pk} AND end_date>=? AND status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
+        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND price > 0 AND academy_category_pk=${pk} AND end_date>=? AND status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
         is_exist = is_exist?.result;
-        console.log(is_exist)
         if (is_exist.length > 0) {
         } else {
-            return response(req, res, -150, "권한이 없습니다.", [])
+            if(decode?.user_level<40){
+                return response(req, res, -150, "권한이 없습니다.", [])
+            }
         }
         let academy_list_sql = `SELECT academy_table.*, user_table.nickname AS nickname FROM academy_table LEFT JOIN user_table ON academy_table.master_pk=user_table.pk WHERE academy_table.category_pk=${pk} AND academy_table.status=1 ORDER BY academy_table.sort DESC `
         if (page) {
-            academy_list_sql += ` LIMIT ${(page - 1) * page_cut}, ${page * page_cut} `;
+            academy_list_sql += ` LIMIT ${(page - 1) * page_cut}, ${page_cut} `;
         }
         let academy_count = await dbQueryList(`SELECT COUNT(*) FROM academy_table WHERE category_pk=${pk} AND status=1 `);
         academy_count = academy_count?.result[0];
         academy_count = academy_count['COUNT(*)'];
         let maxPage = await makeMaxPage(academy_count, page_cut);
         let academy_list = await dbQueryList(academy_list_sql);
+        console.log(academy_list_sql)
         academy_list = academy_list?.result;
         return response(req, res, 100, "success", { maxPage: maxPage, data: academy_list });
     } catch (err) {
@@ -1248,7 +1250,7 @@ const getAcademyCategoryContent = async (req, res) => {
         let review_sql = ` SELECT review_table.*,academy_category_table.main_img AS main_img, user_table.nickname AS nickname FROM review_table `;
         review_sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
         review_sql += ` LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
-        review_sql += ` WHERE academy_category_pk=${pk} ORDER BY pk DESC LIMIT ${(page - 1) * page_cut}, ${page * page_cut} `;
+        review_sql += ` WHERE academy_category_pk=${pk} ORDER BY pk DESC LIMIT ${(page - 1) * page_cut}, ${page_cut} `;
         let review_list = await dbQueryList(review_sql);
         review_list = review_list?.result;
         return response(req, res, 100, "success", { maxPage: review_page, review_list: review_list, academy_content: academy_content });
@@ -1279,7 +1281,7 @@ const getMasterContent = async (req, res) => {
         let review_sql = ` SELECT review_table.*,academy_category_table.main_img AS main_img, user_table.nickname AS nickname FROM review_table `;
         review_sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
         review_sql += ` LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
-        review_sql += ` ${master_academy_pk.length > 0 ? `WHERE academy_category_pk IN (${master_academy_pk.join()})` : ` WHERE 1=2`} ORDER BY pk DESC LIMIT ${(page - 1) * page_cut}, ${page * page_cut} `;
+        review_sql += ` ${master_academy_pk.length > 0 ? `WHERE academy_category_pk IN (${master_academy_pk.join()})` : ` WHERE 1=2`} ORDER BY pk DESC LIMIT ${(page - 1) * page_cut}, ${page_cut} `;
         let review_list = await dbQueryList(review_sql);
         review_list = review_list?.result ?? [];
         return response(req, res, 100, "success", { maxPage: review_page, review_list: review_list, master_content: master_content, academy: master_academies });
@@ -1313,7 +1315,7 @@ const getReviewByMasterPk = async (req, res) => {
             let sql = ` SELECT review_table.*,academy_category_table.main_img AS main_img, user_table.nickname AS nickname FROM review_table `;
             sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
             sql += `LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
-            sql += ` ${master_academy_pk.length > 0 ? `WHERE academy_category_pk IN (${master_academy_pk.join()})` : `WHERE 1=2`} ORDER BY pk DESC LIMIT ${(page - 1) * page_cut}, ${page * page_cut} `
+            sql += ` ${master_academy_pk.length > 0 ? `WHERE academy_category_pk IN (${master_academy_pk.join()})` : `WHERE 1=2`} ORDER BY pk DESC LIMIT ${(page - 1) * page_cut}, ${page_cut} `
             review_list = await dbQueryList(sql);
             review_list = review_list?.result ?? [];
         } else {
@@ -1324,7 +1326,7 @@ const getReviewByMasterPk = async (req, res) => {
             let sql = ` SELECT review_table.*,academy_category_table.main_img AS main_img, user_table.nickname AS nickname FROM review_table `;
             sql += `LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
             sql += `LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
-            sql += ` ORDER BY pk DESC LIMIT ${(page - 1) * page_cut}, ${page * page_cut} `;
+            sql += ` ORDER BY pk DESC LIMIT ${(page - 1) * page_cut}, ${page_cut} `;
             review_list = await dbQueryList(sql);
             review_list = review_list?.result ?? [];
         }
@@ -1338,7 +1340,7 @@ const getEnrolmentList = async (req, res) => {
     try {
         let result_list = [];
         let sql_list = [
-            { table: 'banner', sql: 'SELECT enrolment_banner_img_1,enrolment_banner_img_2,enrolment_banner_img_3,enrolment_banner_img_4,enrolment_banner_img_5, enrolment_bottom_banner,enrolment_banner_link_1,enrolment_banner_link_2,enrolment_banner_link_3,enrolment_banner_link_4,enrolment_banner_link_5 FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
+            { table: 'banner', sql: 'SELECT enrolment_banner_img_1,enrolment_banner_img_2,enrolment_banner_img_3,enrolment_banner_img_4,enrolment_banner_img_5, enrolment_bottom_banner, enrolment_bottom_banner_link, enrolment_banner_link_1,enrolment_banner_link_2,enrolment_banner_link_3,enrolment_banner_link_4,enrolment_banner_link_5 FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'best_academy', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4', type: 'list' },
             { table: 'master', sql: 'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC', type: 'list' },
             { table: 'contents', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ORDER BY academy_category_table.sort DESC', type: 'list' },
@@ -1765,7 +1767,6 @@ const updateItem = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        console.log(req.body)
         let body = { ...req.body };
         let use_manager_pk = ['request'];
         delete body['table'];
@@ -1820,8 +1821,7 @@ const updateItem = async (req, res) => {
         values.push(req.body.pk);
         await db.beginTransaction();
         let result = await insertQuery(sql, values);
-        console.log(sql)
-        console.log(values)
+        let result2 = await updatePlusUtil(table, req.body);
         await db.commit();
         return response(req, res, 200, "success", []);
 
@@ -1829,6 +1829,11 @@ const updateItem = async (req, res) => {
         console.log(err)
         await db.rollback();
         return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+const updatePlusUtil = async (schema, body) =>{
+    if(schema=='academy_category'){
+        let result = await insertQuery(`UPDATE subscribe_table SET end_date=? WHERE academy_category_pk=?`,[body?.end_date, body?.pk]);
     }
 }
 const addIssueCategory = (req, res) => {

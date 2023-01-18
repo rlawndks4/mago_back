@@ -196,12 +196,14 @@ app.get('/api/item', async (req, res) => {
                                 return response(req, res, -200, "서버 에러 발생s", []);
                         } else {
                                 if (table == 'academy' && decode?.user_level <= 0 && req.query.views) {
-                                        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND academy_category_pk=${result[0]?.category_pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
+                                        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND price > 0 AND academy_category_pk=${result[0]?.category_pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment()]);
                                         is_exist = is_exist?.result;
 
                                         if (is_exist.length > 0) {
                                         } else {
-                                                return response(req, res, -150, "권한이 없습니다.", [])
+                                                if(decode?.user_level<40){
+                                                        return response(req, res, -150, "권한이 없습니다.", [])
+                                                }
                                         }
                                 }
                                 return response(req, res, 100, "success", result[0]);
