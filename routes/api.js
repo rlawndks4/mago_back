@@ -3150,7 +3150,7 @@ const checkClassStatus = async (req, res) => {
     }
 }
 const isOrdered = async (decode, item) => {
-    let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item?.pk} AND end_date >= '${returnMoment().substring(0, 10)}' AND use_status=1 `);
+    let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item?.pk} AND end_date >= '${returnMoment().substring(0, 10)}' AND use_status=1 AND price > 0 `);
     is_already_subscribe = is_already_subscribe?.result;
     console.log(is_already_subscribe)
     return is_already_subscribe.length > 0 ? true : false;
