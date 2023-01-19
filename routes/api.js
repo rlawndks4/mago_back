@@ -1123,7 +1123,14 @@ const getAcademyList = async (req, res) => {
             { table: 'academy', sql: `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ${academy_pk_list.length > 0 ? `AND academy_category_table.pk IN (${academy_pk_list.join()})` : 'AND 1=2'}  `, type: 'list' },
             { table: 'master', sql: 'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC', type: 'list' },
         ];
-
+        if(decode?.user_level>=40){
+            sql_list.shift();
+            sql_list.push({
+                table:'academy',
+                sql:`SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk `, 
+                type: 'list'
+            })
+        }
         for (var i = 0; i < sql_list.length; i++) {
             result_list.push(queryPromise(sql_list[i]?.table, sql_list[i]?.sql));
         }
@@ -1170,8 +1177,11 @@ const getMyAcademyClasses = async (req, res) => {
                 academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
             }
         }
-
-        let academy_list = await dbQueryList(`SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ${academy_pk_list.length > 0 ? `AND academy_category_table.pk IN (${academy_pk_list.join()})` : 'AND 1=2'}  `)
+        let academy_list_sql = `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ${academy_pk_list.length > 0 ? `AND academy_category_table.pk IN (${academy_pk_list.join()})` : 'AND 1=2'}  `;
+        if(decode?.user_level>=40){
+            academy_list_sql = `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk ${master_pk?`WHERE master_pk=${master_pk}`:''}`
+        }
+        let academy_list = await dbQueryList(academy_list_sql)
         academy_list = academy_list?.result;
         return response(req, res, 100, "success", academy_list);
     } catch (err) {
@@ -1208,13 +1218,22 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
         }
         let { pk, page, page_cut } = req.body;
         console.log(req.body);
-        page_cut = 10;
+        page_cut = 5;
         let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND price > 0 AND academy_category_pk=${pk} AND end_date>=? AND status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
         is_exist = is_exist?.result;
         if (is_exist.length > 0) {
         } else {
             if(decode?.user_level<40){
                 return response(req, res, -150, "권한이 없습니다.", [])
+            }
+        }
+        let is_period = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${pk} AND (start_date<='${returnMoment().substring(0, 10)}' AND end_date>='${returnMoment().substring(0, 10)}') `)
+        console.log(`SELECT * FROM academy_category_table WHERE pk=${pk} AND (start_date<='${returnMoment().substring(0, 10)}' AND end_date>='${returnMoment().substring(0, 10)}') `)
+        is_period = is_period?.result;
+        if (is_period.length > 0) {
+        } else {
+            if(decode?.user_level<40){
+                return response(req, res, -150, "수강 기간이 아닙니다.", [])
             }
         }
         let academy_list_sql = `SELECT academy_table.*, user_table.nickname AS nickname FROM academy_table LEFT JOIN user_table ON academy_table.master_pk=user_table.pk WHERE academy_table.category_pk=${pk} AND academy_table.status=1 ORDER BY academy_table.sort DESC `
@@ -1226,7 +1245,6 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
         academy_count = academy_count['COUNT(*)'];
         let maxPage = await makeMaxPage(academy_count, page_cut);
         let academy_list = await dbQueryList(academy_list_sql);
-        console.log(academy_list_sql)
         academy_list = academy_list?.result;
         return response(req, res, 100, "success", { maxPage: maxPage, data: academy_list });
     } catch (err) {
@@ -2624,6 +2642,7 @@ const getItems = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+
 const getMyItems = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0)
@@ -2633,7 +2652,6 @@ const getMyItems = async (req, res) => {
         let { table, page, page_cut } = req.body;
         let data = [];
         let data_length = 0;
-        console.log(decode?.pk)
         if (page) {
             data_length = await dbQueryList(`SELECT COUNT(*) FROM ${table}_table WHERE user_pk=${decode?.pk}`);
             data_length = data_length?.result[0]['COUNT(*)'];
