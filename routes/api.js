@@ -1111,8 +1111,9 @@ const getAcademyList = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>='${returnMoment().substring(0, 10)}' AND use_status=1 AND status=1  ORDER BY pk DESC`,);
+        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>='${returnMoment().substring(0, 10)}' AND use_status=1 AND price > 0 AND status=1  ORDER BY pk DESC`,);
         my_enrolment_list = my_enrolment_list?.result;
+        console.log(my_enrolment_list)
         let academy_pk_list = [];
         for (var i = 0; i < my_enrolment_list.length; i++) {
             academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
@@ -1163,7 +1164,7 @@ const getMyAcademyClasses = async (req, res) => {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
         let master_pk = req.body.master_pk;
-        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=? AND use_status=1 AND status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
+        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=? AND use_status=1 AND status=1 AND use_status=1 AND price > 0 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
         my_enrolment_list = my_enrolment_list?.result;
         let academy_pk_list = [];
         if (master_pk) {
