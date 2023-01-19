@@ -204,7 +204,7 @@ app.get('/api/item', async (req, res) => {
                                                         return response(req, res, -150, "권한이 없습니다.", [])
                                                 }
                                         }
-                                        let is_period = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=? AND (start_date <='${returnMoment().substring(0, 10)}' AND end_date>='${returnMoment().substring(0, 10)}') `, [pk])
+                                        let is_period = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=? AND (start_date <='${returnMoment().substring(0, 10)}' AND end_date>='${returnMoment().substring(0, 10)}') `, [result[0]?.category_pk])
                                         is_period = is_period?.result;
                                         if (is_period.length > 0) {
                                         } else {
