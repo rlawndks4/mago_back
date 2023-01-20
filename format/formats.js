@@ -19,15 +19,20 @@ const listFormatBySchema = (schema, data_) => {
     }
     return data;
 }
-const sqlJoinFormat = (schema, sql_, order_, page_sql_) => {
+const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_) => {
     let sql = sql_;
     let page_sql = page_sql_;
     let order = order_;
+    let where_str = where_str_;
     if(schema=='academy_category'){
         sql = ` SELECT academy_category_table.*, user_table.nickname AS master_nickname FROM academy_category_table`;
         page_sql += ` LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk `;
         sql += ` LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk `;
         order = 'academy_category_table.sort'
+    }else if(schema=='academy'){
+        page_sql += ` LEFT JOIN academy_category_table ON academy_table.category_pk=academy_category_table.pk `;
+        sql = ` SELECT academy_table.*, academy_category_table.title AS class_title FROM academy_table`;
+        sql += ` LEFT JOIN academy_category_table ON academy_table.category_pk=academy_category_table.pk `;
     }else if(schema=='notice'){
         sql = ` SELECT notice_table.*, user_table.nickname AS nickname FROM notice_table`;
         page_sql += ` LEFT JOIN user_table ON notice_table.user_pk=user_table.pk `;
@@ -63,7 +68,8 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_) => {
     return {
         page_sql:page_sql,
         sql:sql,
-        order:order
+        order:order,
+        where_str:where_str
     }
 }
 const myItemSqlJoinFormat = (schema, sql_, order_, page_sql_) => {

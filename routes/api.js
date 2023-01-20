@@ -1113,7 +1113,6 @@ const getAcademyList = async (req, res) => {
         }
         let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>='${returnMoment().substring(0, 10)}' AND use_status=1 AND price > 0 AND status=1  ORDER BY pk DESC`,);
         my_enrolment_list = my_enrolment_list?.result;
-        console.log(my_enrolment_list)
         let academy_pk_list = [];
         for (var i = 0; i < my_enrolment_list.length; i++) {
             academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
@@ -1717,6 +1716,24 @@ const addItem = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+const addItemByUserSettingBySchema = async (schema, keys_, values_str_, values_, body_) =>{
+    let body = body_;
+    let keys = keys_;
+    let values_str = values_str_;
+    let values = values_;
+    if(schema=='review'){
+        let class_item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=?`,[body?.academy_category_pk]);
+        class_item = class_item?.result[0];
+        keys.push('master_pk');
+        values_str += ", ?"
+        values.push(class_item?.master_pk);
+    }
+    return {
+        keys:keys,
+        values_str:values_str,
+        values:values,
+    }
+}
 const addItemByUser = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0);
@@ -1762,12 +1779,15 @@ const addItemByUser = async (req, res) => {
             values.push(decode?.pk);
             values_str += ", ?"
         }
-        console.log(table)
-        console.log(keys)
-        console.log(values)
+        let setting = await addItemByUserSettingBySchema(table, keys, values_str, values, body);
+
+        keys = setting?.keys;
+        values_str = setting?.values_str;
+        values = setting?.values;
         let sql = `INSERT INTO ${table}_table (${keys.join()}) VALUES (${values_str}) `;
         await db.beginTransaction();
         let result = await insertQuery(sql, values);
+        
         console.log(result)
         //let result2 = await insertQuery(`UPDATE ${table}_table SET sort=? WHERE pk=?`, [result?.result?.insertId, result?.result?.insertId]);
 
@@ -2600,9 +2620,11 @@ const getItems = async (req, res) => {
         sql = await sqlJoinFormat(table, sql, order, pageSql).sql;
         pageSql = await sqlJoinFormat(table, sql, order, pageSql).page_sql;
         order = await sqlJoinFormat(table, sql, order, pageSql).order;
+        whereStr = await sqlJoinFormat(table, sql, order, pageSql, whereStr).where_str;
         pageSql = pageSql + whereStr;
 
         sql = sql + whereStr + ` ORDER BY ${order ? order : 'sort'} DESC `;
+        console.log(sql)
         if (limit && !page) {
             sql += ` LIMIT ${limit} `;
         }

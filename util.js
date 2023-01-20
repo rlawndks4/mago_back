@@ -363,13 +363,13 @@ const getKewordListBySchema = (schema_) => {
     if (schema == 'user') {
         list = ['id', 'name', 'phone', 'nickname'];
     } else if (schema == 'comment') {
-        list = ['user_table.id','user_table.nickname', 'note'];
+        list = ['user_table.id','user_table.nickname', 'note','item_title'];
     }  else if (schema == 'subscribe') {
-        list = ['u_t.id','u_t.nickname', 'u_t.name','m_t.nickname','academy_category_table.title' ];
+        list = ['u_t.id','u_t.nickname', 'u_t.name','u_t.phone','m_t.nickname','academy_category_table.title' ];
     } else if (schema == 'academy_category') {
         list = ['title','user_table.nickname'];
     } else if (schema == 'academy') {
-        list = ['title'];
+        list = ['academy_table.title','academy_category_table.title'];
     } else if (schema == 'app') {
         list = ['name'];
     } else if (schema == 'popup') {
