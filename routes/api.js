@@ -1123,11 +1123,11 @@ const getAcademyList = async (req, res) => {
             { table: 'academy', sql: `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ${academy_pk_list.length > 0 ? `AND academy_category_table.pk IN (${academy_pk_list.join()})` : 'AND 1=2'}  `, type: 'list' },
             { table: 'master', sql: 'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC', type: 'list' },
         ];
-        if(decode?.user_level>=40){
+        if (decode?.user_level >= 40) {
             sql_list.shift();
             sql_list.push({
-                table:'academy',
-                sql:`SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk `, 
+                table: 'academy',
+                sql: `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk `,
                 type: 'list'
             })
         }
@@ -1178,8 +1178,8 @@ const getMyAcademyClasses = async (req, res) => {
             }
         }
         let academy_list_sql = `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ${academy_pk_list.length > 0 ? `AND academy_category_table.pk IN (${academy_pk_list.join()})` : 'AND 1=2'}  `;
-        if(decode?.user_level>=40){
-            academy_list_sql = `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk ${master_pk?`WHERE master_pk=${master_pk}`:''}`
+        if (decode?.user_level >= 40) {
+            academy_list_sql = `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk ${master_pk ? `WHERE master_pk=${master_pk}` : ''}`
         }
         let academy_list = await dbQueryList(academy_list_sql)
         academy_list = academy_list?.result;
@@ -1223,7 +1223,7 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
         is_exist = is_exist?.result;
         if (is_exist.length > 0) {
         } else {
-            if(decode?.user_level<40){
+            if (decode?.user_level < 40) {
                 return response(req, res, -150, "권한이 없습니다.", [])
             }
         }
@@ -1232,7 +1232,7 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
         is_period = is_period?.result;
         if (is_period.length > 0) {
         } else {
-            if(decode?.user_level<40){
+            if (decode?.user_level < 40) {
                 return response(req, res, -150, "수강 기간이 아닙니다.", [])
             }
         }
@@ -1716,22 +1716,22 @@ const addItem = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const addItemByUserSettingBySchema = async (schema, keys_, values_str_, values_, body_) =>{
+const addItemByUserSettingBySchema = async (schema, keys_, values_str_, values_, body_) => {
     let body = body_;
     let keys = keys_;
     let values_str = values_str_;
     let values = values_;
-    if(schema=='review'){
-        let class_item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=?`,[body?.academy_category_pk]);
+    if (schema == 'review') {
+        let class_item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=?`, [body?.academy_category_pk]);
         class_item = class_item?.result[0];
         keys.push('master_pk');
         values_str += ", ?"
         values.push(class_item?.master_pk);
     }
     return {
-        keys:keys,
-        values_str:values_str,
-        values:values,
+        keys: keys,
+        values_str: values_str,
+        values: values,
     }
 }
 const addItemByUser = async (req, res) => {
@@ -1787,7 +1787,7 @@ const addItemByUser = async (req, res) => {
         let sql = `INSERT INTO ${table}_table (${keys.join()}) VALUES (${values_str}) `;
         await db.beginTransaction();
         let result = await insertQuery(sql, values);
-        
+
         console.log(result)
         //let result2 = await insertQuery(`UPDATE ${table}_table SET sort=? WHERE pk=?`, [result?.result?.insertId, result?.result?.insertId]);
 
@@ -1870,9 +1870,9 @@ const updateItem = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const updatePlusUtil = async (schema, body) =>{
-    if(schema=='academy_category'){
-        let result = await insertQuery(`UPDATE subscribe_table SET end_date=? WHERE academy_category_pk=?`,[body?.end_date, body?.pk]);
+const updatePlusUtil = async (schema, body) => {
+    if (schema == 'academy_category') {
+        let result = await insertQuery(`UPDATE subscribe_table SET end_date=? WHERE academy_category_pk=?`, [body?.end_date, body?.pk]);
     }
 }
 const addIssueCategory = (req, res) => {
@@ -2561,7 +2561,7 @@ const getOptionObjBySchema = async (schema, whereStr) => {
             people_num: { title: '총 수강인원', content: commarNumber(((option?.people_num ?? 0) - (cancel_people?.people_num ?? 0))) },
         }
         if (!whereStr.includes('status=0')) {
-            obj.sum_price = { title: '총 결제금액', content:commarNumber(((option?.sum_price ?? 0) + (cancel_people?.sum_price ?? 0)))}
+            obj.sum_price = { title: '총 결제금액', content: commarNumber(((option?.sum_price ?? 0) + (cancel_people?.sum_price ?? 0))) }
         }
     }
     return obj;
@@ -2603,7 +2603,7 @@ const getItems = async (req, res) => {
         if (start_date && end_date) {
             whereStr += ` AND (${table}_table.trade_date BETWEEN '${start_date} 00:00:00' AND '${end_date} 23:59:59' )`;
         }
-       
+
         if (keyword) {
             if (keyword_columns?.length > 0) {
                 whereStr += " AND (";
@@ -3251,6 +3251,8 @@ const orderInsert = async (decode, body, params) => {
 }
 const onKeyrecieve = async (req, res) => {
     let body = { ...req.body };
+
+
     body['allat_result_msg'].CharSet = 'euc-kr';
     if (body['allat_enc_data']) {
         body['allat_enc_data'].CharSet = 'euc-kr';
@@ -3280,11 +3282,19 @@ const onKeyrecieve = async (req, res) => {
         res.send(js);
     }
 }
+const onNotiKiwoom = (req, res) =>{
+    try{
+        let { PAYMETHOD, CPID, DAOUTRX, ORDERNO, AMOUNT, PRODUCTNAME, SETTDATE, AUTHNO, RESERVEDSTRING, CARDCODE, CARDNAME, CARDNO } = req.query;
+        console.log(req.query);
+    }catch(err){
+        console.log(err);
+    }
+}
 
 module.exports = {
     onLoginById, getUserToken, onLogout, checkExistId, checkPassword, checkExistIdByManager, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo,//auth
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
-    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, checkClassStatus, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent, getAcademyCategoryContent, getMasterContent, getReviewByMasterPk, onKeyrecieve
+    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, checkClassStatus, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent, getAcademyCategoryContent, getMasterContent, getReviewByMasterPk, onKeyrecieve, onNotiKiwoom
 };
