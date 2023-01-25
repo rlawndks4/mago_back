@@ -1,3 +1,4 @@
+const { commarNumber } = require("../util");
 
 const listFormatBySchema = (schema, data_) => {
     let data = [...data_];
@@ -15,6 +16,14 @@ const listFormatBySchema = (schema, data_) => {
     if(schema=='subscribe'){
         for (var i = 0; i < data.length; i++) {
             data[i].type = (data[i]?.type==0?'카드결제':'무통장입금');
+            if(data[i]?.price>=0){
+                data[i]['approve_price'] = commarNumber(data[i]?.price);
+                data[i]['cancel_price'] = "---";
+            }else{
+                data[i]['approve_price'] = "---";
+                data[i]['cancel_price'] = commarNumber(data[i]?.price*(-1));
+            }
+            data[i]['period'] = `${data[i]?.start_date} ~ ${data[i]?.end_date}`
         }
     }
     return data;
