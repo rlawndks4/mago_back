@@ -365,7 +365,7 @@ const getKewordListBySchema = (schema_) => {
     } else if (schema == 'comment') {
         list = ['user_table.id','user_table.nickname', 'note','item_title'];
     }  else if (schema == 'subscribe') {
-        list = ['u_t.id','u_t.nickname', 'u_t.name','u_t.phone','m_t.nickname','academy_category_table.title' ];
+        list = ['u_t.id','u_t.nickname', 'u_t.name','u_t.phone','m_t.nickname' ];
     } else if (schema == 'academy_category') {
         list = ['title','user_table.nickname'];
     } else if (schema == 'academy') {
