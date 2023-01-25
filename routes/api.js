@@ -3286,6 +3286,7 @@ const onNotiKiwoom = (req, res) =>{
     try{
         let { PAYMETHOD, CPID, DAOUTRX, ORDERNO, AMOUNT, PRODUCTNAME, SETTDATE, AUTHNO, RESERVEDSTRING, CARDCODE, CARDNAME, CARDNO } = req.query;
         console.log(req.query);
+        res.send("success");
     }catch(err){
         console.log(err);
     }
