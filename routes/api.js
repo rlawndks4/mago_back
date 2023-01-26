@@ -3231,7 +3231,10 @@ const orderInsert = async (decode, body, params) => {
                     order_num: resp?.data?.order_no,
                     approval_num: resp?.data?.approval_no
                 };
-                let insert_perchase_result = await insertQuery(`INSERT INTO subscribe_table (${Object.keys(keys).join()}) VALUES (${Object.keys(keys).map(() => { return "?" })})`, Object.values(keys))
+                await db.beginTransaction();
+                let delete_bag_result = await insertQuery(`DELETE FROM subscribe_table WHERE user_pk=? AND status=0 AND academy_category_pk=?`, [decode?.pk, item?.pk]);
+                let insert_perchase_result = await insertQuery(`INSERT INTO subscribe_table (${Object.keys(keys).join()}) VALUES (${Object.keys(keys).map(() => { return "?" })})`, Object.values(keys));
+                await db.commit();
                 result['code'] = 1;
                 result['obj']['message'] = '성공적으로 구매 되었습니다.';
             } else {
@@ -3243,6 +3246,7 @@ const orderInsert = async (decode, body, params) => {
             result['obj']['message'] = '현재 이용중인 구독상품 입니다.'
         }
     } catch (err) {
+        await db.rollback();
         console.log(err)
         result['code'] = -1;
         result['obj']['message'] = err;
