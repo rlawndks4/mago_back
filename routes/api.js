@@ -3238,10 +3238,12 @@ const orderInsert = async (decode, body, params) => {
                 result['code'] = 1;
                 result['obj']['message'] = '성공적으로 구매 되었습니다.';
             } else {
+                await db.rollback();
                 result['code'] = -2;
                 result['obj']['message'] = resp?.message;
             }
         } else {
+            await db.rollback();
             result['code'] = 0;
             result['obj']['message'] = '현재 이용중인 구독상품 입니다.'
         }
