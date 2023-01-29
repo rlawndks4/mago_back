@@ -2629,43 +2629,153 @@ const getItems = async (req, res) => {
         }
         if (page) {
             sql += ` LIMIT ${(page - 1) * page_cut}, ${page_cut}`;
-            db.query(pageSql, async (err, result1) => {
-                if (err) {
-                    console.log(err)
-                    return response(req, res, -200, "서버 에러 발생", [])
-                } else {
-                    await db.query(sql, async (err, result2) => {
-                        if (err) {
-                            console.log(err)
-                            return response(req, res, -200, "서버 에러 발생", [])
-                        } else {
-                            let result = [...result2];
-                            result = await listFormatBySchema(table, result);
-                            let maxPage = result1[0]['COUNT(*)'] % page_cut == 0 ? (result1[0]['COUNT(*)'] / page_cut) : ((result1[0]['COUNT(*)'] - result1[0]['COUNT(*)'] % page_cut) / page_cut + 1);
-                            let option_obj = await getOptionObjBySchema(table, whereStr);
-                            return response(req, res, 100, "success", { data: result2, maxPage: maxPage, option_obj: option_obj });
-                        }
-                    })
+            let get_result = await getItemsReturnBySchema(sql, pageSql, table, req?.body);
+            let page_result = get_result?.page_result;
+            let result = get_result?.result;
+
+            let want_use_count = ['user', 'comment'];
+            result = await listFormatBySchema(table, result);
+            let maxPage = page_result[0]['COUNT(*)'] % page_cut == 0 ? (page_result[0]['COUNT(*)'] / page_cut) : ((page_result[0]['COUNT(*)'] - page_result[0]['COUNT(*)'] % page_cut) / page_cut + 1);
+            let option_obj = await getOptionObjBySchema(table, whereStr);
+            if (want_use_count.includes(table)) {
+                option_obj['result_count'] = {
+                    title: '검색결과 수',
+                    content: commarNumber(page_result[0]['COUNT(*)'])
                 }
-            })
+            }
+            return response(req, res, 100, "success", { data: result, maxPage: maxPage, option_obj: option_obj });
+
         } else {
-            db.query(sql, async (err, result2) => {
-                if (err) {
-                    console.log(err)
-                    return response(req, res, -200, "서버 에러 발생", [])
-                } else {
-                    let result = [...result2];
-                    result = await listFormatBySchema(table, result);
-                    return response(req, res, 100, "success", result2)
-                }
-            })
+            let get_result = await getItemsReturnBySchema(sql, pageSql, table, req?.body);
+            let result = get_result?.result;
+            return response(req, res, 100, "success", result);
         }
     } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+const getItemsReturnBySchema = async (sql_, pageSql_, schema_, body_) => {
+    let sql = sql_;
+    let pageSql = pageSql_;
+    let schema = schema_;
+    let body = body_;
+    let another_get_item_schema = ['user_statistics'];
+    let page_result = [{ 'COUNT(*)': 0 }];
+    let result = [];
+    if (another_get_item_schema.includes(schema)) {
+        if (schema == 'user_statistics') {
+            let { statistics_type, statistics_year, statistics_month, page_cut, page } = body;
+            statistics_month = statistics_month ?? 1;
+            statistics_type = statistics_type ?? 'month';
+            statistics_year = statistics_year ?? returnMoment().substring(0, 4);
+            let dates = [];
+            let format = '';
+            if (statistics_type == 'month') {
+                let last_month = 0;
+                if (returnMoment().substring(0, 4) == statistics_year) {
+                    last_month = parseInt(returnMoment().substring(5, 7));
+                } else {
+                    last_month = 12;
+                }
+                for (var i = 1; i <= last_month; i++) {
+                    dates.push(`${statistics_year}-${i < 10 ? `0${i}` : i}`);
+                }
+                format = '%Y-%m';
+            } else {
+                dates = getDateRangeData(new Date(`${statistics_year}-${statistics_month < 10 ? `0${statistics_month}` : `${statistics_month}`}-01`), new Date(`${statistics_year}-${statistics_month < 10 ? `0${statistics_month}` : `${statistics_month}`}-31`));
+                format = '%Y-%m-%d';
+            }
+            dates = dates.reverse();
+            let date_index_obj = {};
+            for (var i = 0; i < dates.length; i++) {
+                date_index_obj[dates[i]] = i;
+            }
+            let sql_list = [];
+            let sql_obj = [
+                { table: 'user', date_colomn: 'user_date', count_column: 'user_count' },
+                { table: 'academy', date_colomn: 'post_date', count_column: 'post_count' },
+                { table: 'notice', date_colomn: 'post_date', count_column: 'post_count' },
+                { table: 'comment', date_colomn: 'comment_date', count_column: 'comment_count' },
+            ]
+            let subStr = ``;
+            if (statistics_type == 'day') {
+                subStr = ` WHERE SUBSTR(DATE, 1, 7)='${statistics_year + `-${statistics_month < 10 ? `0${statistics_month}` : statistics_month}`}' `;
+            } else if (statistics_type == 'month') {
+                subStr = ` WHERE SUBSTR(DATE, 1, 4)='${statistics_year}' `;
+            } else {
+                return response(req, res, -100, "fail", [])
+            }
+            for (var i = 0; i < sql_obj.length; i++) {
+                let sql = "";
+                sql = `SELECT DATE_FORMAT(date, '${format}') AS ${sql_obj[i].date_colomn}, COUNT(DATE_FORMAT(date, '${format}')) AS ${sql_obj[i].count_column} FROM ${sql_obj[i].table}_table ${subStr} GROUP BY DATE_FORMAT(date, '${format}') ORDER BY ${sql_obj[i].date_colomn} DESC`;
+                sql_list.push(queryPromise(sql_obj[i].table, sql));
+            }
+            for (var i = 0; i < sql_list.length; i++) {
+                await sql_list[i];
+            }
+            result = (await when(sql_list));
+            let result_list = [];
+            for (var i = 0; i < dates.length; i++) {
+                result_list.push({
+                    date: dates[i],
+                    user_count: 0,
+                    visit_count: 0,
+                    post_count: 0,
+                    comment_count: 0,
+                    views_count: 0
+                })
+            }
 
+            for (var i = 0; i < result.length; i++) {
+                let date_column = ``;
+                let count_column = ``;
+                if ((await result[i])?.table == 'user') {
+                    date_column = `user_date`;
+                    count_column = `user_count`;
+                } else if ((await result[i])?.table == 'comment') {
+                    date_column = `comment_date`;
+                    count_column = `comment_count`;
+                } else if ((await result[i])?.table == 'views') {
+                    date_column = `views_date`;
+                    count_column = `views_count`;
+                } else if ((await result[i])?.table == 'visit') {
+                    date_column = `visit_date`;
+                    count_column = `visit_count`;
+                } else {
+                    date_column = `post_date`;
+                    count_column = `post_count`;
+                }
+                let data_list = (await result[i])?.data;
+                if (data_list.length > 0) {
+                    for (var j = 0; j < data_list.length; j++) {
+                        result_list[date_index_obj[data_list[j][date_column]]][count_column] += data_list[j][count_column]
+                    }
+                }
+
+            }
+            let maxPage = makeMaxPage(result_list.length, page_cut);
+            page_result = [{ 'COUNT(*)': result_list.length }];
+            let result_obj = {};
+            if (page) {
+                result_list = result_list.slice((page - 1) * page_cut, (page) * page_cut)
+                result_obj = { data: result_list, maxPage: maxPage };
+            } else {
+                result_obj = result_list;
+            }
+            result = result_list;
+        }
+    } else {
+        page_result = await dbQueryList(pageSql);
+        page_result = page_result?.result;
+        result = await dbQueryList(sql);
+        result = result?.result;
+    }
+    return {
+        page_result: page_result,
+        result: result
+    }
+}
 const getMyItems = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0)
@@ -3288,12 +3398,12 @@ const onKeyrecieve = async (req, res) => {
         res.send(js);
     }
 }
-const onNotiKiwoom = (req, res) =>{
-    try{
+const onNotiKiwoom = (req, res) => {
+    try {
         let { PAYMETHOD, CPID, DAOUTRX, ORDERNO, AMOUNT, PRODUCTNAME, SETTDATE, AUTHNO, RESERVEDSTRING, CARDCODE, CARDNAME, CARDNO } = req.query;
         console.log(req.query);
         res.send("success");
-    }catch(err){
+    } catch (err) {
         console.log(err);
     }
 }
