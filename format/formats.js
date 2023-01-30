@@ -15,7 +15,15 @@ const listFormatBySchema = (schema, data_) => {
     }
     if(schema=='subscribe'){
         for (var i = 0; i < data.length; i++) {
-            data[i].type = (data[i]?.type==0?'카드결제':'무통장입금');
+            if(data[i]?.type==0){
+                data[i].type = '카드결제';
+            }else if(data[i]?.type==1){
+                data[i].type = '무통장입금';
+            }else if(data[i]?.type==2){
+                data[i].type = '기타';
+            }else{
+                data[i].type = '---';
+            }
             if(data[i]?.price>=0){
                 data[i]['approve_price'] = commarNumber(data[i]?.price);
                 data[i]['cancel_price'] = "---";
