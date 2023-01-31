@@ -1,7 +1,9 @@
 const { commarNumber } = require("../util");
 
 const listFormatBySchema = (schema, data_) => {
+
     let data = [...data_];
+
     let option_list = {};
     if (schema == 'academy_category') {
         option_list = {
@@ -25,6 +27,7 @@ const listFormatBySchema = (schema, data_) => {
                 data[i].type = '---';
             }
             if(data[i]?.price>=0){
+
                 data[i]['approve_price'] = commarNumber(data[i]?.price);
                 data[i]['cancel_price'] = "---";
             }else{

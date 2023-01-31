@@ -2648,6 +2648,7 @@ const getItems = async (req, res) => {
         } else {
             let get_result = await getItemsReturnBySchema(sql, pageSql, table, req?.body);
             let result = get_result?.result;
+            result = await listFormatBySchema(table, result);
             return response(req, res, 100, "success", result);
         }
     } catch (err) {
