@@ -1111,7 +1111,7 @@ const getAcademyList = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>='${returnMoment().substring(0, 10)}' AND use_status=1 AND price > 0 AND status=1  ORDER BY pk DESC`,);
+        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>='${returnMoment().substring(0, 10)}' AND use_status=1 AND transaction_status >= 0   ORDER BY pk DESC`,);
         my_enrolment_list = my_enrolment_list?.result;
         let academy_pk_list = [];
         for (var i = 0; i < my_enrolment_list.length; i++) {
@@ -1120,7 +1120,7 @@ const getAcademyList = async (req, res) => {
         let result_list = [];
 
         let sql_list = [
-            { table: 'academy', sql: `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ${academy_pk_list.length > 0 ? `AND academy_category_table.pk IN (${academy_pk_list.join()})` : 'AND 1=2'}  `, type: 'list' },
+            { table: 'academy', sql: `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk ${academy_pk_list.length > 0 ? `WHERE academy_category_table.pk IN (${academy_pk_list.join()})` : 'WHERE 1=2'}  `, type: 'list' },
             { table: 'master', sql: 'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC', type: 'list' },
         ];
         if (decode?.user_level >= 40) {
@@ -1163,7 +1163,7 @@ const getMyAcademyClasses = async (req, res) => {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
         let master_pk = req.body.master_pk;
-        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=? AND use_status=1 AND status=1 AND use_status=1 AND price > 0 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
+        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=? AND use_status=1 AND use_status=1 AND transaction_status >= 0 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
         my_enrolment_list = my_enrolment_list?.result;
         let academy_pk_list = [];
         if (master_pk) {
@@ -1177,7 +1177,7 @@ const getMyAcademyClasses = async (req, res) => {
                 academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
             }
         }
-        let academy_list_sql = `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ${academy_pk_list.length > 0 ? `AND academy_category_table.pk IN (${academy_pk_list.join()})` : 'AND 1=2'}  `;
+        let academy_list_sql = `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk ${academy_pk_list.length > 0 ? `WHERE academy_category_table.pk IN (${academy_pk_list.join()})` : 'WHERE 1=2'}  `;
         if (decode?.user_level >= 40) {
             academy_list_sql = `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk ${master_pk ? `WHERE master_pk=${master_pk}` : ''}`
         }
@@ -1219,7 +1219,7 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
         let { pk, page, page_cut } = req.body;
         console.log(req.body);
         page_cut = 5;
-        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND price > 0 AND academy_category_pk=${pk} AND end_date>=? AND status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
+        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND transaction_status >= 0 AND academy_category_pk=${pk} AND end_date>=? AND status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
         is_exist = is_exist?.result;
         if (is_exist.length > 0) {
         } else {
@@ -2551,10 +2551,10 @@ const getOneEvent = (req, res) => {
 const getOptionObjBySchema = async (schema, whereStr) => {
     let obj = {};
     if (schema == 'subscribe') {
-        let sql = ` ${sqlJoinFormat(schema, ``, "", `SELECT COUNT(*) AS people_num, SUM(${schema}_table.price) AS sum_price FROM ${schema}_table `)?.page_sql} ${whereStr} AND ${schema}_table.price > 0`;
+        let sql = ` ${sqlJoinFormat(schema, ``, "", `SELECT COUNT(*) AS people_num, SUM(${schema}_table.price) AS sum_price FROM ${schema}_table `)?.page_sql} ${whereStr} AND ${schema}_table.transaction_status >= 0`;
         let option = await dbQueryList(sql);
         option = option?.result[0];
-        let sql2 = ` ${sqlJoinFormat(schema, ``, "", `SELECT COUNT(*) AS people_num, SUM(${schema}_table.price) AS sum_price FROM ${schema}_table `)?.page_sql} ${whereStr} AND ${schema}_table.price < 0 `;
+        let sql2 = ` ${sqlJoinFormat(schema, ``, "", `SELECT COUNT(*) AS people_num, SUM(${schema}_table.price) AS sum_price FROM ${schema}_table `)?.page_sql} ${whereStr} AND ${schema}_table.transaction_status < 0 `;
         let cancel_people = await dbQueryList(sql2);
         cancel_people = cancel_people?.result[0];
         obj = {
@@ -3302,7 +3302,7 @@ const checkClassStatus = async (req, res) => {
     }
 }
 const isOrdered = async (decode, item) => {
-    let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item?.pk} AND end_date >= '${returnMoment().substring(0, 10)}' AND use_status=1 AND price > 0 `);
+    let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item?.pk} AND end_date >= '${returnMoment().substring(0, 10)}' AND use_status=1 AND transaction_status >= 0 `);
     is_already_subscribe = is_already_subscribe?.result;
     console.log(is_already_subscribe)
     return is_already_subscribe.length > 0 ? true : false;

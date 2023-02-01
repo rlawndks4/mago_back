@@ -26,8 +26,7 @@ const listFormatBySchema = (schema, data_) => {
             }else{
                 data[i].type = '---';
             }
-            if(data[i]?.price>=0){
-
+            if(data[i]?.transaction_status>=0){
                 data[i]['approve_price'] = commarNumber(data[i]?.price);
                 data[i]['cancel_price'] = "---";
             }else{
