@@ -1222,6 +1222,7 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
         let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND transaction_status >= 0 AND academy_category_pk=${pk} AND end_date>=? AND status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
         is_exist = is_exist?.result;
         if (is_exist.length > 0) {
+            
         } else {
             if (decode?.user_level < 40) {
                 return response(req, res, -150, "권한이 없습니다.", [])
