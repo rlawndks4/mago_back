@@ -1120,7 +1120,7 @@ const getAcademyList = async (req, res) => {
         let result_list = [];
 
         let sql_list = [
-            { table: 'academy', sql: `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk ${academy_pk_list.length > 0 ? `WHERE academy_category_table.pk IN (${academy_pk_list.join()})` : 'WHERE 1=2'}  `, type: 'list' },
+            { table: 'academy', sql: `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk ${academy_pk_list.length > 0 ? `WHERE academy_category_table.pk IN (${academy_pk_list.join()})` : 'WHERE 1=2'}  ORDER BY academy_category_table.sort DESC`, type: 'list' },
             { table: 'master', sql: 'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC', type: 'list' },
         ];
         if (decode?.user_level >= 40) {
@@ -1177,9 +1177,9 @@ const getMyAcademyClasses = async (req, res) => {
                 academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
             }
         }
-        let academy_list_sql = `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk ${academy_pk_list.length > 0 ? `WHERE academy_category_table.pk IN (${academy_pk_list.join()})` : 'WHERE 1=2'}  `;
+        let academy_list_sql = `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk ${academy_pk_list.length > 0 ? `WHERE academy_category_table.pk IN (${academy_pk_list.join()})` : 'WHERE 1=2'}  ORDER BY academy_category_table.sort DESC`;
         if (decode?.user_level >= 40) {
-            academy_list_sql = `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk ${master_pk ? `WHERE master_pk=${master_pk}` : ''}`
+            academy_list_sql = `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk ${master_pk ? `WHERE master_pk=${master_pk}` : ''} ORDER BY academy_category_table.sort DESC`
         }
         let academy_list = await dbQueryList(academy_list_sql)
         academy_list = academy_list?.result;
@@ -1229,7 +1229,6 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
             }
         }
         let is_period = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${pk} AND (start_date<='${returnMoment().substring(0, 10)}' AND end_date>='${returnMoment().substring(0, 10)}') `)
-        console.log(`SELECT * FROM academy_category_table WHERE pk=${pk} AND (start_date<='${returnMoment().substring(0, 10)}' AND end_date>='${returnMoment().substring(0, 10)}') `)
         is_period = is_period?.result;
         if (is_period.length > 0) {
         } else {
