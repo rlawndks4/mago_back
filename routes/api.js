@@ -1222,7 +1222,7 @@ const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 �
         let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND transaction_status >= 0 AND academy_category_pk=${pk} AND end_date>=? AND status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
         is_exist = is_exist?.result;
         if (is_exist.length > 0) {
-            
+
         } else {
             if (decode?.user_level < 40) {
                 return response(req, res, -150, "권한이 없습니다.", [])
@@ -3301,6 +3301,21 @@ const checkClassStatus = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", []);
     }
 }
+const insertPayResult = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 0);
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", []);
+        }
+        const {item_pk, status} = req.body;
+        let result = await insertQuery(`INSERT INTO pay_result_table (user_pk, item_pk, status) VALUES (?, ?, ?)`,[decode?.pk, item_pk, status]);
+        return response(req, res, 100, "success", []);
+    } catch (e) {
+        await db.rollback();
+        console.log(e);
+        return response(req, res, -200, "서버 에러 발생", []);
+    }
+}
 const isOrdered = async (decode, item) => {
     let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item?.pk} AND end_date >= '${returnMoment().substring(0, 10)}' AND use_status=1 AND transaction_status >= 0 `);
     is_already_subscribe = is_already_subscribe?.result;
@@ -3398,7 +3413,10 @@ const onKeyrecieve = async (req, res) => {
     catch (err) {
         res.send(js);
     }
+
 }
+
+
 const onNotiKiwoom = (req, res) => {
     try {
         let { PAYMETHOD, CPID, DAOUTRX, ORDERNO, AMOUNT, PRODUCTNAME, SETTDATE, AUTHNO, RESERVEDSTRING, CARDCODE, CARDNAME, CARDNO } = req.query;
@@ -3412,7 +3430,7 @@ const onNotiKiwoom = (req, res) => {
 module.exports = {
     onLoginById, getUserToken, onLogout, checkExistId, checkPassword, checkExistIdByManager, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo,//auth
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
-    addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup,//insert 
+    addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup, insertPayResult,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
     deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, checkClassStatus, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent, getAcademyCategoryContent, getMasterContent, getReviewByMasterPk, onKeyrecieve, onNotiKiwoom
 };
