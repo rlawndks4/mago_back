@@ -3309,7 +3309,9 @@ const insertPayResult = async (req, res) => {
         }
         const {item_pk, status} = req.body;
         let result = await insertQuery(`INSERT INTO pay_result_table (user_pk, item_pk, status) VALUES (?, ?, ?)`,[decode?.pk, item_pk, status]);
-        return response(req, res, 100, "success", []);
+        let academy_category = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${item_pk}`);
+        academy_category = academy_category?.result[0];
+        return response(req, res, 100, "success", academy_category);
     } catch (e) {
         await db.rollback();
         console.log(e);
