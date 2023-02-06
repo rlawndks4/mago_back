@@ -3304,9 +3304,6 @@ const checkClassStatus = async (req, res) => {
 const insertPayResult = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0);
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", []);
-        }
         const {item_pk, status} = req.body;
         let result = await insertQuery(`INSERT INTO pay_result_table (user_pk, item_pk, status) VALUES (?, ?, ?)`,[decode?.pk, item_pk, status]);
         let academy_category = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${item_pk}`);
