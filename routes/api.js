@@ -3305,7 +3305,7 @@ const insertPayResult = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0);
         const {item_pk, status} = req.body;
-        let result = await insertQuery(`INSERT INTO pay_result_table (user_pk, item_pk, status) VALUES (?, ?, ?)`,[decode?.pk, item_pk, status]);
+        let result = await insertQuery(`INSERT INTO pay_result_table (user_pk, item_pk, status) VALUES (?, ?, ?)`,[decode?.pk??0, item_pk, status]);
         let academy_category = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${item_pk}`);
         academy_category = academy_category?.result[0];
         return response(req, res, 100, "success", academy_category);
