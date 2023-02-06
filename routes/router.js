@@ -4,7 +4,7 @@ const { upload } = require('../config/multerConfig')
 const {
     onLoginById, getUserToken, onLogout, checkExistId, checkPassword, checkExistIdByManager, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo,//auth
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
-    addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup, insertPayResult,//insert 
+    addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup, insertPayResult, insertUserMoneyByExcel,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
     deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, checkClassStatus, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent, getAcademyCategoryContent, getMasterContent, getReviewByMasterPk, onKeyrecieve, onNotiKiwoom
 } = require('./api')
@@ -23,6 +23,7 @@ const image_list = [
     { name: 'note' },
 ]
 router.post('/addimageitems', upload.fields(image_list), addImageItems);
+router.post('/insertusermoneybyexcel', insertUserMoneyByExcel);
 router.post('/addalarm', addAlarm);
 router.post('/updatealarm', updateAlarm);
 router.post('/editmyinfo', editMyInfo);
@@ -111,7 +112,7 @@ router.post('/getcountnotreadnoti', getCountNotReadNoti);
 router.get('/getnoticeandalarmlastpk', getNoticeAndAlarmLastPk);
 router.post('/addpopup', upload.single('content'), addPopup);
 router.post('/updatepopup', upload.single('content'), updatePopup);
-router.post('/onsubscribe',  onSubscribe);
-router.post('/updatesubscribe',  updateSubscribe);
+router.post('/onsubscribe', onSubscribe);
+router.post('/updatesubscribe', updateSubscribe);
 
 module.exports = router;

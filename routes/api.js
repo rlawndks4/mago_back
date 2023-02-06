@@ -3301,11 +3301,123 @@ const checkClassStatus = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", []);
     }
 }
+const insertUserMoneyByExcel = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 40);
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다", []);
+        }
+        let { list } = req.body;
+        console.log(list)
+        let log_obj = [];
+        let user_list_sql = `SELECT pk, id FROM user_table WHERE id IN (`;
+        for (var i = 0; i < list.length; i++) {
+            user_list_sql += `'${list[i][0]}',`
+        }
+        user_list_sql = user_list_sql.substring(0, user_list_sql.length - 1);
+        user_list_sql += ")";
+        let user_list = await dbQueryList(user_list_sql);
+
+        user_list = user_list?.result;
+
+        let user_obj = {};
+        for (var i = 0; i < user_list.length; i++) {
+            user_obj[user_list[i]['id']] = user_list[i];
+        }
+
+        let class_list = await dbQueryList(`SELECT * FROM academy_category_table ORDER BY pk DESC`);
+        class_list = class_list.result;
+        let class_obj = {};
+        for (var i = 0; i < class_list.length; i++) {
+            class_obj[class_list[i]['title']] = class_list[i];
+        }
+        let insert_list = [];
+        if (list.length > 0) {
+            for (var i = 0; i < list.length; i++) {
+                let user_pk = 0;
+                let item_pk = 0;
+                let master_pk = 0;
+                let price = 0;
+                let status = 1;
+                let date = '';
+                let type = 0;
+                let transaction_status = 0;
+                if (user_obj[list[i][0]]) {
+                    user_pk = user_obj[list[i][0]]?.pk;
+                } else {
+                    return response(req, res, -100, `${list[i][0]} 아이디를 찾을 수 없습니다.`, []);
+                }
+                if (class_obj[list[i][1]]) {
+                    item_pk = class_obj[list[i][1]]?.pk;
+                    master_pk = class_obj[list[i][1]]?.master_pk;
+                } else {
+                    return response(req, res, -100, `${list[i][1]} 강의를 찾을 수 없습니다.`, []);
+                }
+                let date_regex = RegExp(/^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$/);
+                if (!date_regex.test(list[i][4])) {
+                    return response(req, res, -100, `${list[i][4]} 는 등록일 정규식에 맞지 않습니다.`, []);
+                } else {
+                    date = list[i][4];
+                }
+                if ((list[i][2] && isNaN(parseInt(list[i][2]))) && (list[i][3] && isNaN(parseInt(list[i][3])))) {
+                    return response(req, res, -100, `승인금액 또는 취소금액에 숫자 이외의 값이 감지 되었습니다.`, []);
+                }
+                if ((list[i][2] && parseInt(list[i][2]) > 0) && (list[i][3] && parseInt(list[i][3]) > 0)) {
+                    return response(req, res, -100, `승인금액과 취소금액은 동시에 올릴 수 없습니다.`, []);
+                }
+                if (parseInt(list[i][2]) < 0 || parseInt(list[i][3]) < 0) {
+                    return response(req, res, -100, `승인금액과 취소금액에 음수를 넣을 수 없습니다.`, []);
+                }
+                if(list[i][2] && parseInt(list[i][2]) > 0){
+                    price = parseInt(list[i][2]);
+                    transaction_status = 0;
+                }
+                if(list[i][3] && parseInt(list[i][3]) > 0){
+                    price = parseInt(list[i][3])*(-1);
+                    transaction_status = -1;
+                }
+                let pay_type_list = ['카드','무통장입금','기타'];
+                if(!pay_type_list.includes(list[i][5])){
+                    return response(req, res, -100, `결제타입에 카드, 무통장입금, 기타 중 하나를 입력해주세요`, []);
+                }else{
+                    for(var j = 0;j<pay_type_list.length;j++){
+                        if(list[i][5] == pay_type_list[j]){
+                            type = j;
+                        }
+                    }
+                }
+                insert_list.push([
+                    user_pk,
+                    item_pk,
+                    master_pk,
+                    price,
+                    status,
+                    date,
+                    type,
+                    transaction_status
+                ])
+            }
+            await db.beginTransaction();
+            let result = await insertQuery(`INSERT INTO subscribe_table (user_pk, academy_category_pk, master_pk, price, status, trade_day, type, transaction_status) VALUES ? `,[insert_list]);
+            await db.commit();
+            return response(req, res, 100, "success", []);
+        } else {
+            await db.commit();
+            return response(req, res, 100, "success", []);
+        }
+    } catch (err) {
+        console.log(err)
+        await db.rollback();
+        return response(req, res, -200, "서버 에러 발생", []);
+    } finally {
+
+    }
+}
 const insertPayResult = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0);
-        const {item_pk, status} = req.body;
-        let result = await insertQuery(`INSERT INTO pay_result_table (user_pk, item_pk, status) VALUES (?, ?, ?)`,[decode?.pk??0, item_pk, status]);
+        const { item_pk, status } = req.body;
+        let result = await insertQuery(`INSERT INTO pay_result_table (user_pk, item_pk, status) VALUES (?, ?, ?)`, [decode?.pk ?? 0, item_pk, status]);
         let academy_category = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${item_pk}`);
         academy_category = academy_category?.result[0];
         return response(req, res, 100, "success", academy_category);
@@ -3429,7 +3541,7 @@ const onNotiKiwoom = (req, res) => {
 module.exports = {
     onLoginById, getUserToken, onLogout, checkExistId, checkPassword, checkExistIdByManager, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo,//auth
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
-    addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup, insertPayResult,//insert 
+    addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup, insertPayResult, insertUserMoneyByExcel,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
     deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, checkClassStatus, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent, getAcademyCategoryContent, getMasterContent, getReviewByMasterPk, onKeyrecieve, onNotiKiwoom
 };
