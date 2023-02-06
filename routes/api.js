@@ -2598,7 +2598,7 @@ const getItems = async (req, res) => {
             whereStr += ` AND ${table}_table.difficulty=${difficulty} `;
         }
         if (price_is_minus) {
-            whereStr += ` AND ${table}_table.price ${price_is_minus == 1 ? ' < 0 ' : ' > 0 '} `;
+            whereStr += ` AND ${table}_table.transaction_status ${price_is_minus == 1 ? ' == -1 ' : ' == 0 '} `;
         }
         if (start_date && end_date) {
             whereStr += ` AND (${table}_table.trade_date BETWEEN '${start_date} 00:00:00' AND '${end_date} 23:59:59' )`;
