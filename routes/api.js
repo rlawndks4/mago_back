@@ -2571,6 +2571,7 @@ const getItems = async (req, res) => {
         let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date, type } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
         let sql = `SELECT * FROM ${table}_table `;
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
+        console.log(req.body)
         let keyword_columns = getKewordListBySchema(table);
         let whereStr = " WHERE 1=1 ";
         if (level) {
