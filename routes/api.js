@@ -3301,6 +3301,24 @@ const checkClassStatus = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", []);
     }
 }
+function excelDateToJSDate(serial) {
+    var utc_days  = Math.floor(serial - 25569);
+    var utc_value = utc_days * 86400;                                        
+    var date_info = new Date(utc_value * 1000);
+ 
+    var fractional_day = serial - Math.floor(serial) + 0.0000001;
+ 
+    var total_seconds = Math.floor(86400 * fractional_day);
+ 
+    var seconds = total_seconds % 60;
+ 
+    total_seconds -= seconds;
+ 
+    var hours = Math.floor(total_seconds / (60 * 60));
+    var minutes = Math.floor(total_seconds / 60) % 60;
+ 
+    return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
+ }
 const insertUserMoneyByExcel = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 40);
@@ -3353,11 +3371,19 @@ const insertUserMoneyByExcel = async (req, res) => {
                 } else {
                     return response(req, res, -100, `${list[i][1]} 강의를 찾을 수 없습니다.`, []);
                 }
+
                 let date_regex = RegExp(/^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$/);
+
                 if (!date_regex.test(list[i][4])) {
                     return response(req, res, -100, `${list[i][4]} 는 등록일 정규식에 맞지 않습니다.`, []);
                 } else {
                     date = list[i][4];
+                }
+                if(typeof list[i][2] == 'string'){
+                    list[i][2] = list[i][2].replaceAll(',','');
+                }
+                if(typeof list[i][3] == 'string'){
+                    list[i][3] = list[i][3].replaceAll(',','');
                 }
                 if ((list[i][2] && isNaN(parseInt(list[i][2]))) && (list[i][3] && isNaN(parseInt(list[i][3])))) {
                     return response(req, res, -100, `승인금액 또는 취소금액에 숫자 이외의 값이 감지 되었습니다.`, []);
@@ -3376,9 +3402,9 @@ const insertUserMoneyByExcel = async (req, res) => {
                     price = parseInt(list[i][3])*(-1);
                     transaction_status = -1;
                 }
-                let pay_type_list = ['카드','무통장입금','기타'];
+                let pay_type_list = ['카드결제','무통장입금','기타'];
                 if(!pay_type_list.includes(list[i][5])){
-                    return response(req, res, -100, `결제타입에 카드, 무통장입금, 기타 중 하나를 입력해주세요`, []);
+                    return response(req, res, -100, `결제타입에 카드결제, 무통장입금, 기타 중 하나를 입력해주세요`, []);
                 }else{
                     for(var j = 0;j<pay_type_list.length;j++){
                         if(list[i][5] == pay_type_list[j]){
