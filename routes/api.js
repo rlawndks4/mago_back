@@ -3377,7 +3377,7 @@ const insertUserMoneyByExcel = async (req, res) => {
                 if (!date_regex.test(list[i][4])) {
                     return response(req, res, -100, `${list[i][4]} 는 등록일 정규식에 맞지 않습니다.`, []);
                 } else {
-                    date = list[i][4];
+                    date = list[i][4] + ' 00:00:00';
                 }
                 if(typeof list[i][2] == 'string'){
                     list[i][2] = list[i][2].replaceAll(',','');
@@ -3424,7 +3424,7 @@ const insertUserMoneyByExcel = async (req, res) => {
                 ])
             }
             await db.beginTransaction();
-            let result = await insertQuery(`INSERT INTO subscribe_table (user_pk, academy_category_pk, master_pk, price, status, trade_day, type, transaction_status) VALUES ? `,[insert_list]);
+            let result = await insertQuery(`INSERT INTO subscribe_table (user_pk, academy_category_pk, master_pk, price, status, trade_date, type, transaction_status) VALUES ? `,[insert_list]);
             await db.commit();
             return response(req, res, 100, "success", []);
         } else {
