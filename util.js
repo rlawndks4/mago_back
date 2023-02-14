@@ -12,7 +12,7 @@ const pwBytes = 64
 const jwtSecret = "djfudnsqlalfKeyFmfRkwu"
 
 const firebaseToken = 'fV0vRpDpTfCnY_VggFEgN7:APA91bHdHP6ilBpe9Wos5Y72SXFka2uAM3luANewGuw7Bx2XGnvUNjK5e5k945xwcXpW8NNei3LEaBtKT2_2A6naix8Wg5heVik8O2Aop_fu8bUibnGxuCe3RLQDtHNrMeC5gmgGRoVh';
-const fcmServerKey = "AAAA35TttWk:APA91bGLGZjdD2fgaPRh8eYyu9CDSndD97ZdO4MBypbpICClEwMADAJnt2giOaCWRvMldof5DkplMptbmyN0Fm0Q975dm-CD7i0XhrHzjgMN0EKfXHxLy4NyohEVXDHW5DBfYrlncvQh";
+const fcmServerKey = "AAAAqJRPduU:APA91bEIVm9-Fli0Bty_hKUggbL0CGKe_CH6Mf1k09j2Iyv9Uqm1C7ILlIhEBNkjt5C5OvNtruMVMioVp962WWjbbxMb5zaY2nQ1TiXYZgFif5tQ58KayHQJpmubjBTeJ32qi3A4leQl";
 firebase.initializeApp({
     credential: firebase.credential.cert(serviceAccount)
 });

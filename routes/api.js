@@ -246,7 +246,12 @@ const onLoginById = async (req, res) => {
                                         expiresIn: '60000m',
                                         issuer: 'fori',
                                     });
-                                res.cookie("token", token, { httpOnly: true, maxAge: 60 * 60 * 1000 * 10 * 10 * 10, sameSite: 'none', secure: true });
+                                res.cookie("token", token, { 
+                                    httpOnly: true, 
+                                    maxAge: 60 * 60 * 1000 * 10 * 10 * 10, 
+                                    //sameSite: 'none', 
+                                    //secure: true 
+                                });
                                 db.query('UPDATE user_table SET last_login=? WHERE pk=?', [returnMoment(), result1[0].pk], (err, result) => {
                                     if (err) {
                                         console.log(err)
