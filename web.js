@@ -112,7 +112,7 @@ if (is_test) {
         };
         server = https.createServer(options, app).listen(HTTPS_PORT, function () {
                 console.log("Server on " + HTTPS_PORT);
-                //scheduleAlarm();
+                scheduleAlarm();
         });
 
 }

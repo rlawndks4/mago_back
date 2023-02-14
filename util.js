@@ -19,7 +19,7 @@ firebase.initializeApp({
 const sendAlarm = (title, note, table, pk, url) => {
     let fcm = new fcmNode(fcmServerKey)
     let message = {
-        to: '/topics/' + 'weare',
+        to: '/topics/' + 'first_academy',
         "click_action": "FLUTTER_NOTIFICATION_CLICK",
         "priority": "high",
         notification: {
