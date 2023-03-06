@@ -21,6 +21,7 @@ const image_list = [
     { name: 'profile' },
     { name: 'ad' },
     { name: 'note' },
+    { name: 'pdfimg' },
     { name: 'pdf' },
 ]
 router.post('/addimageitems', upload.fields(image_list), addImageItems);
