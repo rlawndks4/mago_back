@@ -1,22 +1,39 @@
 const multer = require('multer');
-const sharp = require('sharp');
 const storage = multer.diskStorage({
         destination: function (req, file, cb) {
                 console.log(file)
                 cb(null, __dirname + `/../image/${file.fieldname}/`);
         },
         filename: function (req, file, cb) {
-                cb(null, Date.now() + `-${file.fieldname}.` + file.mimetype.split('/')[1])
+                console.log(file);
+                let file_type = "";
+                if(file.mimetype.includes('pdf')){
+                        file_type = 'pdf';
+                }else{
+                        file_type = file.mimetype.split('/')[1];
+                }
+                cb(null, Date.now() + `-${file.fieldname}.` + file_type)
 
         }
 })
 const fileFilter = (req, file, cb) => {
+        console.log(file)
+
         let typeArray = file.mimetype.split('/')
         let filetype = typeArray[1]
-        if (filetype == 'jpg' || filetype == 'png' || filetype == 'gif' || filetype == 'jpeg' || filetype == 'bmp' || filetype == 'mp4' || filetype == 'avi' || filetype == 'webp' || filetype == 'ico')
+        if (filetype == 'jpg' ||
+                filetype == 'png' ||
+                filetype == 'gif' ||
+                filetype == 'jpeg' ||
+                filetype == 'bmp' ||
+                filetype == 'mp4' ||
+                filetype == 'avi' ||
+                filetype == 'webp' ||
+                filetype == 'ico' ||
+                filetype == 'pdf' ||
+                filetype == 'haansoftpdf' 
+        )
                 return cb(null, true)
-
-        console.log((file.fieldname === 'image') ? '광고 ' : '상품 ' + '파일 확장자 제한: ', filetype)
         req.fileValidationError = "파일 형식이 올바르지 않습니다(.jpg, .png, .gif 만 가능)"
         cb(null, false, new Error("파일 형식이 올바르지 않습니다(.jpg, .png, .gif 만 가능)"))
 }
