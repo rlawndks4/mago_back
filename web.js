@@ -125,6 +125,7 @@ server.on('connection', function (socket) {
                 app.connectionsN--;
         });
 });
+
 const resizeFile = async (path, filename) => {
         try {
                 // await sharp(path + '/' + filename)

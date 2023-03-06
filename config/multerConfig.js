@@ -6,13 +6,16 @@ const storage = multer.diskStorage({
         },
         filename: function (req, file, cb) {
                 console.log(file);
+                let file_name = "";
                 let file_type = "";
                 if(file.mimetype.includes('pdf')){
                         file_type = 'pdf';
+                        file_name = file.originalname.split('.')[0]+'.';
                 }else{
+                        file_name = Date.now() + `-${file.fieldname}.`
                         file_type = file.mimetype.split('/')[1];
                 }
-                cb(null, Date.now() + `-${file.fieldname}.` + file_type)
+                cb(null, file_name + file_type)
 
         }
 })
