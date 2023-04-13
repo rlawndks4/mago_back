@@ -1,9 +1,10 @@
+const { dbQueryList } = require("../query-util");
 const { commarNumber } = require("../util");
 
-const listFormatBySchema = (schema, data_) => {
+const listFormatBySchema = async (schema, data_) => {
 
     let data = [...data_];
-
+   
     let option_list = {};
     if (schema == 'academy_category') {
         option_list = {
@@ -36,6 +37,13 @@ const listFormatBySchema = (schema, data_) => {
             data[i]['period'] = `${data[i]?.start_date} ~ ${data[i]?.end_date}`
         }
     }
+    if(schema=='city'){
+        let children = await dbQueryList(`SELECT * FROM sub_city_table `);
+        children = children?.result;
+        for(var i =0;i<data.length;i++){
+            
+        }
+    }
     return data;
 }
 const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_) => {
@@ -43,21 +51,20 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_) => {
     let page_sql = page_sql_;
     let order = order_;
     let where_str = where_str_;
-    if(schema=='academy_category'){
-        sql = ` SELECT academy_category_table.*, user_table.nickname AS master_nickname FROM academy_category_table`;
-        page_sql += ` LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk `;
-        sql += ` LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk `;
-        order = 'academy_category_table.sort'
-    }else if(schema=='academy'){
-        page_sql += ` LEFT JOIN academy_category_table ON academy_table.category_pk=academy_category_table.pk `;
-        sql = ` SELECT academy_table.*, academy_category_table.title AS class_title FROM academy_table`;
-        sql += ` LEFT JOIN academy_category_table ON academy_table.category_pk=academy_category_table.pk `;
-    }else if(schema=='notice'){
-        sql = ` SELECT notice_table.*, user_table.nickname AS nickname FROM notice_table`;
-        page_sql += ` LEFT JOIN user_table ON notice_table.user_pk=user_table.pk `;
-        sql += ` LEFT JOIN user_table ON notice_table.user_pk=user_table.pk `;
-        order = 'notice_table.sort'
-    }else if(schema=='request'){
+    let community_list = [
+        'faq',
+        'notice',
+        'freeboard',
+        'question',
+        'humor',
+        'news',
+        'party',
+    ]
+    let shop_community_list = [
+        'shop_review',
+        'shop_event',
+    ]
+    if(schema=='request'){
         sql = ` SELECT request_table.*, user_table.nickname AS nickname, user_table.id AS id FROM request_table`;
         page_sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
         sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
@@ -67,21 +74,17 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_) => {
         page_sql += ` LEFT JOIN user_table ON comment_table.user_pk=user_table.pk `;
         sql += ` LEFT JOIN user_table ON comment_table.user_pk=user_table.pk `;
         order = 'pk'
-    }else if(schema=='subscribe'){
-        sql = ` SELECT subscribe_table.*, u_t.nickname AS nickname, u_t.id AS id, u_t.name AS user_name, u_t.phone AS phone,u_t.bank_name AS bank_name,u_t.account_number AS account_number,u_t.account_holder AS account_holder, academy_category_table.title AS title, academy_category_table.start_date AS start_date,academy_category_table.end_date AS end_date, m_t.nickname AS master_nickname FROM subscribe_table`;
-        page_sql += ` LEFT JOIN user_table AS u_t ON subscribe_table.user_pk=u_t.pk `;
-        page_sql += ` LEFT JOIN academy_category_table ON subscribe_table.academy_category_pk=academy_category_table.pk `;
-        page_sql += ` LEFT JOIN user_table AS m_t ON subscribe_table.master_pk=m_t.pk `;
-        sql += ` LEFT JOIN user_table AS u_t ON subscribe_table.user_pk=u_t.pk `;
-        sql += ` LEFT JOIN academy_category_table ON subscribe_table.academy_category_pk=academy_category_table.pk `;
-        sql += ` LEFT JOIN user_table AS m_t ON subscribe_table.master_pk=m_t.pk `;
+    }else if(shop_community_list.includes(schema)){
+        sql = ` SELECT ${schema}_table.*, user_table.nickname AS nickname, user_table.id AS id, shop_table.name AS shop_name FROM ${schema}_table`;
+        page_sql += ` LEFT JOIN user_table ON ${schema}_table.user_pk=user_table.pk `;
+        page_sql += ` LEFT JOIN shop_table ON ${schema}_table.shop_pk=shop_table.pk `;
+        sql += ` LEFT JOIN user_table ON ${schema}_table.user_pk=user_table.pk `;
+        sql += ` LEFT JOIN shop_table ON ${schema}_table.shop_pk=shop_table.pk `;
         order = 'pk'
-    }else if(schema=='review'){
-        sql = ` SELECT review_table.*, user_table.nickname AS nickname, user_table.id AS id, academy_category_table.title AS item_title FROM review_table`;
-        page_sql += ` LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
-        page_sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
-        sql += ` LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
-        sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
+    }else if(community_list.includes(schema)){
+        sql = ` SELECT ${schema}_table.*, user_table.nickname AS nickname, user_table.id AS id FROM ${schema}_table`;
+        page_sql += ` LEFT JOIN user_table ON ${schema}_table.user_pk=user_table.pk `;
+        sql += ` LEFT JOIN user_table ON ${schema}_table.user_pk=user_table.pk `;
         order = 'pk'
     }
     return {

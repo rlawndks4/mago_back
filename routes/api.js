@@ -132,16 +132,8 @@ const onSignUp = async (req, res) => {
         const name = req.body.name ?? "";
         const nickname = req.body.nickname ?? "";
         const phone = req.body.phone ?? "";
-        const address = req.body.address ?? "";
-        const address_detail = req.body.address_detail ?? "";
-        const zip_code = req.body.zip_code ?? "";
-        const account_holder = req.body.account_holder ?? "";
-        const bank_name = req.body.bank_name ?? "";
-        const account_number = req.body.account_number ?? "";
-        const manager_note = req.body.manager_note ?? "";
         const user_level = req.body.user_level ?? 0;
         const type_num = req.body.type_num ?? 0;
-        const profile_img = req.body.profile_img ?? "";
         //중복 체크 
         let sql = "SELECT * FROM user_table WHERE id=? OR nickname=? ";
 
@@ -184,23 +176,15 @@ const onSignUp = async (req, res) => {
                                     return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
                                 }
 
-                                sql = 'INSERT INTO user_table (id, pw, name, nickname , phone, user_level, type, profile_img, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-                                await db.query(sql, [id, hash, name, nickname, phone, user_level, type_num, profile_img, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note], async (err, result) => {
+                                sql = 'INSERT INTO user_table (id, pw, name, nickname , phone, user_level, type) VALUES (?, ?, ?, ?, ?, ?, ?)'
+                                await db.query(sql, [id, hash, name, nickname, phone, user_level, type_num], async (err, result) => {
 
                                     if (err) {
                                         console.log(err)
                                         return response(req, res, -200, "회원 추가 실패", [])
                                     }
                                     else {
-                                        await db.query("UPDATE user_table SET sort=? WHERE pk=?", [result?.insertId, result?.insertId], (err, resultup) => {
-                                            if (err) {
-                                                console.log(err)
-                                                return response(req, res, -200, "회원 추가 실패", [])
-                                            }
-                                            else {
-                                                return response(req, res, 200, "회원 추가 성공", [])
-                                            }
-                                        })
+                                        return response(req, res, 200, "회원 추가 성공", [])
                                     }
                                 })
                             })
@@ -246,9 +230,9 @@ const onLoginById = async (req, res) => {
                                         expiresIn: '60000m',
                                         issuer: 'fori',
                                     });
-                                res.cookie("token", token, { 
-                                    httpOnly: true, 
-                                    maxAge: 60 * 60 * 1000 * 10 * 10 * 10, 
+                                res.cookie("token", token, {
+                                    httpOnly: true,
+                                    maxAge: 60 * 60 * 1000 * 10 * 10 * 10,
                                     //sameSite: 'none', 
                                     //secure: true 
                                 });
@@ -448,10 +432,21 @@ const editMyInfo = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const onResign = (req, res) => {
+const onResign = async (req, res) => {
     try {
-        let { id } = req.body;
-        db.query("DELETE FROM user_table WHERE id=?", [id], (err, result) => {
+        const decode = checkLevel(req.cookies.token, 0)
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        let { pw } = req.body;
+        pw = await makeHash(pw);
+        pw = pw?.data;
+        let user = await dbQueryList(`SELECT * FROM user_table WHERE pk=?`,[decode?.pk]);
+        user = user?.result[0];
+        if(pw != user?.pw){
+            return response(req, res, -100, "비밀번호가 일치하지 않습니다.", []);
+        }
+        db.query("DELETE FROM user_table WHERE pk=?", [decode?.pk], (err, result) => {
             if (err) {
                 console.log(err)
                 return response(req, res, -100, "서버 에러 발생", []);
@@ -1041,22 +1036,8 @@ const getHomeContent = async (req, res) => {
         let result_list = [];
         let sql_list = [
             { table: 'banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
-            { table: 'best_academy', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4', type: 'list' },
-            { table: 'best_comment', sql: 'SELECT * FROM comment_table WHERE is_best=1 AND category_pk=1 ORDER BY pk DESC LIMIT 4', type: 'list' },
-            { table: 'notice', sql: 'SELECT notice_table.*, user_table.nickname FROM notice_table LEFT JOIN user_table ON notice_table.user_pk=user_table.pk WHERE notice_table.status=1 ORDER BY notice_table.sort DESC LIMIT 3', type: 'list' },
-            { table: 'app', sql: 'SELECT * FROM app_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
-            { table: 'main_video', sql: 'SELECT * FROM main_video_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
-            { table: 'best_review', sql: '', type: 'list' },
         ];
 
-        for (var i = 0; i < sql_list.length; i++) {
-            if (sql_list[i]?.table == 'best_review') {
-                sql_list[i].sql = 'SELECT review_table.*, academy_category_table.main_img FROM review_table ';
-                sql_list[i].sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
-                sql_list[i].sql += ` WHERE review_table.is_best=1 ORDER BY pk DESC `;
-            }
-            result_list.push(queryPromise(sql_list[i]?.table, sql_list[i]?.sql));
-        }
         for (var i = 0; i < result_list.length; i++) {
             await result_list[i];
         }
@@ -1084,7 +1065,7 @@ const getHeaderContent = async (req, res) => {
         let sql_list = [
             { table: 'top_banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'popup', sql: 'SELECT * FROM popup_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
-            { table: 'master', sql: 'SELECT pk, nickname, name FROM user_table WHERE user_level=30 AND status=1  ORDER BY sort DESC', type: 'list' },
+            // { table: 'master', sql: 'SELECT pk, nickname, name FROM user_table WHERE user_level=30 AND status=1  ORDER BY sort DESC', type: 'list' },
         ];
         for (var i = 0; i < sql_list.length; i++) {
             result_list.push(queryPromise(sql_list[i]?.table, sql_list[i]?.sql));
@@ -1700,7 +1681,8 @@ const addItem = async (req, res) => {
             values_str += ", ?"
         }
         let table = req.body.table;
-        if (table == 'notice' || table == 'faq' || table == 'event') {
+
+        if (table == 'notice' || table == 'faq' || table == 'event' || table == 'shop') {
             keys.push('user_pk');
             values.push(decode?.pk);
             values_str += ", ?"
@@ -2573,7 +2555,7 @@ const getOptionObjBySchema = async (schema, whereStr) => {
 }
 const getItems = async (req, res) => {
     try {
-        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date, type } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
+        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date, type, city_pk } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
         let sql = `SELECT * FROM ${table}_table `;
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
         let keyword_columns = getKewordListBySchema(table);
@@ -2595,6 +2577,9 @@ const getItems = async (req, res) => {
         }
         if (master_pk) {
             whereStr += ` AND ${table}_table.master_pk=${master_pk} `;
+        }
+        if (city_pk) {
+            whereStr += ` AND ${table}_table.city_pk=${city_pk} `;
         }
         if (academy_category_pk) {
             whereStr += ` AND ${table}_table.academy_category_pk=${academy_category_pk} `;
@@ -2670,107 +2655,7 @@ const getItemsReturnBySchema = async (sql_, pageSql_, schema_, body_) => {
     let page_result = [{ 'COUNT(*)': 0 }];
     let result = [];
     if (another_get_item_schema.includes(schema)) {
-        if (schema == 'user_statistics') {
-            let { statistics_type, statistics_year, statistics_month, page_cut, page } = body;
-            statistics_month = statistics_month ?? 1;
-            statistics_type = statistics_type ?? 'month';
-            statistics_year = statistics_year ?? returnMoment().substring(0, 4);
-            let dates = [];
-            let format = '';
-            if (statistics_type == 'month') {
-                let last_month = 0;
-                if (returnMoment().substring(0, 4) == statistics_year) {
-                    last_month = parseInt(returnMoment().substring(5, 7));
-                } else {
-                    last_month = 12;
-                }
-                for (var i = 1; i <= last_month; i++) {
-                    dates.push(`${statistics_year}-${i < 10 ? `0${i}` : i}`);
-                }
-                format = '%Y-%m';
-            } else {
-                dates = getDateRangeData(new Date(`${statistics_year}-${statistics_month < 10 ? `0${statistics_month}` : `${statistics_month}`}-01`), new Date(`${statistics_year}-${statistics_month < 10 ? `0${statistics_month}` : `${statistics_month}`}-31`));
-                format = '%Y-%m-%d';
-            }
-            dates = dates.reverse();
-            let date_index_obj = {};
-            for (var i = 0; i < dates.length; i++) {
-                date_index_obj[dates[i]] = i;
-            }
-            let sql_list = [];
-            let sql_obj = [
-                { table: 'user', date_colomn: 'user_date', count_column: 'user_count' },
-                { table: 'academy', date_colomn: 'post_date', count_column: 'post_count' },
-                { table: 'notice', date_colomn: 'post_date', count_column: 'post_count' },
-                { table: 'comment', date_colomn: 'comment_date', count_column: 'comment_count' },
-            ]
-            let subStr = ``;
-            if (statistics_type == 'day') {
-                subStr = ` WHERE SUBSTR(DATE, 1, 7)='${statistics_year + `-${statistics_month < 10 ? `0${statistics_month}` : statistics_month}`}' `;
-            } else if (statistics_type == 'month') {
-                subStr = ` WHERE SUBSTR(DATE, 1, 4)='${statistics_year}' `;
-            } else {
-                return response(req, res, -100, "fail", [])
-            }
-            for (var i = 0; i < sql_obj.length; i++) {
-                let sql = "";
-                sql = `SELECT DATE_FORMAT(date, '${format}') AS ${sql_obj[i].date_colomn}, COUNT(DATE_FORMAT(date, '${format}')) AS ${sql_obj[i].count_column} FROM ${sql_obj[i].table}_table ${subStr} GROUP BY DATE_FORMAT(date, '${format}') ORDER BY ${sql_obj[i].date_colomn} DESC`;
-                sql_list.push(queryPromise(sql_obj[i].table, sql));
-            }
-            for (var i = 0; i < sql_list.length; i++) {
-                await sql_list[i];
-            }
-            result = (await when(sql_list));
-            let result_list = [];
-            for (var i = 0; i < dates.length; i++) {
-                result_list.push({
-                    date: dates[i],
-                    user_count: 0,
-                    visit_count: 0,
-                    post_count: 0,
-                    comment_count: 0,
-                    views_count: 0
-                })
-            }
-
-            for (var i = 0; i < result.length; i++) {
-                let date_column = ``;
-                let count_column = ``;
-                if ((await result[i])?.table == 'user') {
-                    date_column = `user_date`;
-                    count_column = `user_count`;
-                } else if ((await result[i])?.table == 'comment') {
-                    date_column = `comment_date`;
-                    count_column = `comment_count`;
-                } else if ((await result[i])?.table == 'views') {
-                    date_column = `views_date`;
-                    count_column = `views_count`;
-                } else if ((await result[i])?.table == 'visit') {
-                    date_column = `visit_date`;
-                    count_column = `visit_count`;
-                } else {
-                    date_column = `post_date`;
-                    count_column = `post_count`;
-                }
-                let data_list = (await result[i])?.data;
-                if (data_list.length > 0) {
-                    for (var j = 0; j < data_list.length; j++) {
-                        result_list[date_index_obj[data_list[j][date_column]]][count_column] += data_list[j][count_column]
-                    }
-                }
-
-            }
-            let maxPage = makeMaxPage(result_list.length, page_cut);
-            page_result = [{ 'COUNT(*)': result_list.length }];
-            let result_obj = {};
-            if (page) {
-                result_list = result_list.slice((page - 1) * page_cut, (page) * page_cut)
-                result_obj = { data: result_list, maxPage: maxPage };
-            } else {
-                result_obj = result_list;
-            }
-            result = result_list;
-        }
+        
     } else {
         page_result = await dbQueryList(pageSql);
         page_result = page_result?.result;
@@ -3084,32 +2969,23 @@ const updateStatus = (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const onTheTopItem = (req, res) => {
+const onTheTopItem = async (req, res) => {
     try {
         const { table, pk } = req.body;
-        db.query(`SHOW TABLE STATUS LIKE '${table}_table' `, async (err, result1) => {
+        let result = await dbQueryList(`SELECT max(pk) from ${table}_table`);
+        result = result?.result;
+        console.log(result)
+        let max_pk = result[0]['max(pk)'];
+
+        await db.query(`UPDATE ${table}_table SET sort=? WHERE pk=? `, [max_pk + 1, pk], async (err, result2) => {
             if (err) {
                 console.log(err)
                 return response(req, res, -200, "서버 에러 발생", [])
             } else {
-                let ai = result1[0].Auto_increment;
-                await db.query(`UPDATE ${table}_table SET sort=? WHERE pk=? `, [ai, pk], async (err, result2) => {
-                    if (err) {
-                        console.log(err)
-                        return response(req, res, -200, "서버 에러 발생", [])
-                    } else {
-                        await db.query(`ALTER TABLE ${table}_table AUTO_INCREMENT=?`, [ai + 1], (err, result3) => {
-                            if (err) {
-                                console.log(err)
-                                return response(req, res, -200, "서버 에러 발생", [])
-                            } else {
-                                return response(req, res, 100, "success", [])
-                            }
-                        })
-                    }
-                })
+                return response(req, res, 100, "success", [])
             }
         })
+
     } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
@@ -3237,11 +3113,12 @@ const setCountNotReadNoti = async (req, res) => {
 const getAddressByText = async (req, res) => {
     try {
         let { text } = req.body;
-        let client_id = 'y7ilf087qu';
-        let client_secret = '7J780cymrcHrnGs9hR47bXb9myEkxlTqZ95yMSbb';
+        let client_id = '3fbdbua1qd';
+        let client_secret = 'sLpgki9KM7Rw60uQGwZTuiDj9b8eRH8HxSyecQOI';
         let api_url = 'https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode'; // json
+        console.log(text)
         if (!text) {
-            return response(req, res, -100, "주소명을 입력 후 검색 버튼을 눌러주세요.", result);
+            return response(req, res, -100, "주소명을 입력 후 검색 버튼을 눌러주세요.", []);
         }
         const coord = await axios.get(`${api_url}`, {
             params: {
@@ -3307,23 +3184,23 @@ const checkClassStatus = async (req, res) => {
     }
 }
 function excelDateToJSDate(serial) {
-    var utc_days  = Math.floor(serial - 25569);
-    var utc_value = utc_days * 86400;                                        
+    var utc_days = Math.floor(serial - 25569);
+    var utc_value = utc_days * 86400;
     var date_info = new Date(utc_value * 1000);
- 
+
     var fractional_day = serial - Math.floor(serial) + 0.0000001;
- 
+
     var total_seconds = Math.floor(86400 * fractional_day);
- 
+
     var seconds = total_seconds % 60;
- 
+
     total_seconds -= seconds;
- 
+
     var hours = Math.floor(total_seconds / (60 * 60));
     var minutes = Math.floor(total_seconds / 60) % 60;
- 
+
     return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
- }
+}
 const insertUserMoneyByExcel = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 40);
@@ -3384,11 +3261,11 @@ const insertUserMoneyByExcel = async (req, res) => {
                 } else {
                     date = list[i][4] + ' 00:00:00';
                 }
-                if(typeof list[i][2] == 'string'){
-                    list[i][2] = list[i][2].replaceAll(',','');
+                if (typeof list[i][2] == 'string') {
+                    list[i][2] = list[i][2].replaceAll(',', '');
                 }
-                if(typeof list[i][3] == 'string'){
-                    list[i][3] = list[i][3].replaceAll(',','');
+                if (typeof list[i][3] == 'string') {
+                    list[i][3] = list[i][3].replaceAll(',', '');
                 }
                 if ((list[i][2] && isNaN(parseInt(list[i][2]))) && (list[i][3] && isNaN(parseInt(list[i][3])))) {
                     return response(req, res, -100, `승인금액 또는 취소금액에 숫자 이외의 값이 감지 되었습니다.`, []);
@@ -3399,20 +3276,20 @@ const insertUserMoneyByExcel = async (req, res) => {
                 if (parseInt(list[i][2]) < 0 || parseInt(list[i][3]) < 0) {
                     return response(req, res, -100, `승인금액과 취소금액에 음수를 넣을 수 없습니다.`, []);
                 }
-                if(list[i][2] && parseInt(list[i][2]) > 0){
+                if (list[i][2] && parseInt(list[i][2]) > 0) {
                     price = parseInt(list[i][2]);
                     transaction_status = 0;
                 }
-                if(list[i][3] && parseInt(list[i][3]) > 0){
-                    price = parseInt(list[i][3])*(-1);
+                if (list[i][3] && parseInt(list[i][3]) > 0) {
+                    price = parseInt(list[i][3]) * (-1);
                     transaction_status = -1;
                 }
-                let pay_type_list = ['카드결제','무통장입금','기타'];
-                if(!pay_type_list.includes(list[i][5])){
+                let pay_type_list = ['카드결제', '무통장입금', '기타'];
+                if (!pay_type_list.includes(list[i][5])) {
                     return response(req, res, -100, `결제타입에 카드결제, 무통장입금, 기타 중 하나를 입력해주세요`, []);
-                }else{
-                    for(var j = 0;j<pay_type_list.length;j++){
-                        if(list[i][5] == pay_type_list[j]){
+                } else {
+                    for (var j = 0; j < pay_type_list.length; j++) {
+                        if (list[i][5] == pay_type_list[j]) {
                             type = j;
                         }
                     }
@@ -3429,7 +3306,7 @@ const insertUserMoneyByExcel = async (req, res) => {
                 ])
             }
             await db.beginTransaction();
-            let result = await insertQuery(`INSERT INTO subscribe_table (user_pk, academy_category_pk, master_pk, price, status, trade_date, type, transaction_status) VALUES ? `,[insert_list]);
+            let result = await insertQuery(`INSERT INTO subscribe_table (user_pk, academy_category_pk, master_pk, price, status, trade_date, type, transaction_status) VALUES ? `, [insert_list]);
             await db.commit();
             return response(req, res, 100, "success", []);
         } else {
