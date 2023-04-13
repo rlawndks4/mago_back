@@ -1065,6 +1065,7 @@ const getHeaderContent = async (req, res) => {
         let sql_list = [
             { table: 'top_banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'popup', sql: 'SELECT * FROM popup_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
+            { table: 'theme', sql: 'SELECT * FROM shop_theme_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
             // { table: 'master', sql: 'SELECT pk, nickname, name FROM user_table WHERE user_level=30 AND status=1  ORDER BY sort DESC', type: 'list' },
         ];
         for (var i = 0; i < sql_list.length; i++) {

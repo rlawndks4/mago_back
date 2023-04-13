@@ -24,6 +24,7 @@ const image_list = [
     { name: 'pdfimg' },
     { name: 'pdf' },
     { name: 'city' },
+    { name: 'country' },
 ]
 router.post('/addimageitems', upload.fields(image_list), addImageItems);
 router.post('/insertusermoneybyexcel', insertUserMoneyByExcel);
