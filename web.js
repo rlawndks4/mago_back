@@ -74,30 +74,6 @@ let overFiveTime = new Date(returnMoment());
 overFiveTime.setMinutes(overFiveTime.getMinutes() + 5)
 overFiveTime = overFiveTime.getTime();
 
-const scheduleAlarm = () => {
-        schedule.scheduleJob('0 0/1 * * * *', async function () {
-                console.log(returnMoment());
-                let date = returnMoment().substring(0, 10);
-                let dayOfWeek = new Date(date).getDay()
-                let result = await dbQueryList(`SELECT * FROM alarm_table WHERE ((DATEDIFF(?, start_date) >= 0 AND days LIKE '%${dayOfWeek}%' AND type=1) OR ( start_date=? AND type=2 )) AND STATUS=1`, [date, date]);
-                if (result.code > 0) {
-                        let list = [...result.result];
-                        for (var i = 0; i < list.length; i++) {
-                                let time = new Date(returnMoment()).getTime();
-                                let overFiveTime = new Date(returnMoment());
-                                overFiveTime.setMinutes(overFiveTime.getMinutes() + 1)
-                                overFiveTime = overFiveTime.getTime();
-
-                                let item_time = new Date(returnMoment().substring(0, 11) + list[i].time).getTime();
-
-                                if (item_time >= time && item_time < overFiveTime) {
-                                        sendAlarm(list[i].title, list[i].note, "alarm", list[i].pk, list[i].url);
-                                        insertQuery("INSERT INTO alarm_log_table (title, note, item_table, item_pk, url) VALUES (?, ?, ?, ?, ?)", [list[i].title, list[i].note, "alarm", list[i].pk, list[i].url])
-                                }
-                        }
-                }
-        })
-}
 let server = undefined
 if (is_test) {
         server = http.createServer(app).listen(HTTP_PORT, function () {
@@ -112,7 +88,6 @@ if (is_test) {
         };
         server = https.createServer(options, app).listen(HTTPS_PORT, function () {
                 console.log("Server on " + HTTPS_PORT);
-                scheduleAlarm();
         });
 
 }
