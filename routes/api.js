@@ -1036,6 +1036,7 @@ const getHomeContent = async (req, res) => {
         let result_list = [];
         let sql_list = [
             { table: 'banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
+            { table: 'city', sql: 'SELECT * FROM city_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
         ];
 
         for (var i = 0; i < result_list.length; i++) {
