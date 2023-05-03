@@ -441,9 +441,9 @@ const onResign = async (req, res) => {
         let { pw } = req.body;
         pw = await makeHash(pw);
         pw = pw?.data;
-        let user = await dbQueryList(`SELECT * FROM user_table WHERE pk=?`,[decode?.pk]);
+        let user = await dbQueryList(`SELECT * FROM user_table WHERE pk=?`, [decode?.pk]);
         user = user?.result[0];
-        if(pw != user?.pw){
+        if (pw != user?.pw) {
             return response(req, res, -100, "비밀번호가 일치하지 않습니다.", []);
         }
         db.query("DELETE FROM user_table WHERE pk=?", [decode?.pk], (err, result) => {
@@ -2555,6 +2555,40 @@ const getOptionObjBySchema = async (schema, whereStr) => {
     }
     return obj;
 }
+const getShops = async (req, res) => {
+    try {
+        let { theme, is_around, city } = req.body;
+        let column_list = [
+            'shop_table.*',
+            'city_table.name AS city_name',
+            'sub_city_table.name AS sub_city_name',
+            'sub_city_table.name AS sub_city_name',
+            'shop_theme_table.name AS theme_name',
+            'shop_country_table.name AS country_name',
+            'shop_country_table.img_src AS country_img',
+        ]
+        let sql = `SELECT ${column_list.join()} FROM shop_table `;
+        sql += ` LEFT JOIN city_table ON shop_table.city_pk=city_table.pk `;
+        sql += ` LEFT JOIN sub_city_table ON shop_table.sub_city_pk=sub_city_table.pk `;
+        sql += ` LEFT JOIN shop_theme_table ON shop_table.theme_pk=shop_theme_table.pk `;
+        sql += ` LEFT JOIN shop_country_table ON shop_table.country_pk=shop_country_table.pk `;
+        sql += ` WHERE 1=1 `;
+
+        if(theme){
+            sql += ` AND theme_pk=${theme} `;
+        }
+        if(city){
+            sql += ` AND shop_table.city_pk=${city} `;
+        }
+        let shops = await dbQueryList(sql);
+        shops = shops?.result;
+
+        return response(req, res, 100, "success", shops);
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
 const getItems = async (req, res) => {
     try {
         let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date, type, city_pk } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
@@ -2657,7 +2691,7 @@ const getItemsReturnBySchema = async (sql_, pageSql_, schema_, body_) => {
     let page_result = [{ 'COUNT(*)': 0 }];
     let result = [];
     if (another_get_item_schema.includes(schema)) {
-        
+
     } else {
         page_result = await dbQueryList(pageSql);
         page_result = page_result?.result;
@@ -3453,5 +3487,5 @@ module.exports = {
     getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup, insertPayResult, insertUserMoneyByExcel,//insert 
     updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
-    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, checkClassStatus, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent, getAcademyCategoryContent, getMasterContent, getReviewByMasterPk, onKeyrecieve, onNotiKiwoom
+    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, checkClassStatus, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent, getAcademyCategoryContent, getMasterContent, getReviewByMasterPk, onKeyrecieve, onNotiKiwoom, getShops
 };
