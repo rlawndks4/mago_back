@@ -6,7 +6,7 @@ const {
     getUsers, getItems, getHomeContent, getSetting, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     onSignUp, addItem, addItemByUser, addNoteImage, addSetting, addComment, addPopup, //insert 
     updateUser, updateItem, updateSetting, updateStatus, onTheTopItem, changeItemSequence, changePassword, updateComment, updatePopup,//update
-    deleteItem, onResign, getMyItems, getMyItem, getHeaderContent, getMasterContent, getReviewByMasterPk, getShop
+    deleteItem, onResign, getMyItems, getMyItem, getHeaderContent, getMasterContent, getReviewByMasterPk, getShop, getAddressByLocation
 } = require('./api')
 const image_list = [
     { name: 'master' },
@@ -67,6 +67,7 @@ router.get('/getmastercontent', getMasterContent);
 router.get('/getreviewbymasterpk', getReviewByMasterPk);
 router.get('/getmyinfo', getMyInfo);
 router.post('/getaddressbytext', getAddressByText);
+router.post('/getaddressbylocation', getAddressByLocation);
 
 
 

@@ -432,7 +432,6 @@ const sendSms = (req, res) => {
     try {
         let receiver = req.body.receiver;
         const content = req.body.content;
-        console.log(req.body)
         sendAligoSms({ receivers: receiver, message: content }).then((result) => {
             if (result.result_code == '1') {
                 return response(req, res, 100, "success", [])
@@ -1147,7 +1146,6 @@ const addItemByUser = async (req, res) => {
         await db.beginTransaction();
         let result = await insertQuery(sql, values);
 
-        console.log(result)
         //let result2 = await insertQuery(`UPDATE ${table}_table SET sort=? WHERE pk=?`, [result?.result?.insertId, result?.result?.insertId]);
 
         await db.commit();
@@ -1627,7 +1625,6 @@ const getShops = async (req, res) => {
                     shops[i]['country_list'][j] = country_obj[shops[i]['country_list'][j]];
                 }
             }
-            console.log(shops[i]['country_list'])
         }
         return response(req, res, 100, "success", shops);
     } catch (err) {
@@ -1669,6 +1666,22 @@ const getShop = async (req, res) => {
         let result = (await when(result_list));
         for (var i = 0; i < (await result).length; i++) {
             result_obj[(await result[i])?.table] = (await result[i])?.data;
+        }
+        let option_list = await dbQueryList(`SELECT * FROM shop_option_table`);
+        option_list = option_list?.result;
+        let option_obj = listToObjKey(option_list, 'pk');
+        let country_list = await dbQueryList(`SELECT * FROM shop_country_table`);
+        country_list = country_list?.result;
+        let country_obj = listToObjKey(country_list, 'pk');
+        result_obj['shop']['price_list'] = JSON.parse(result_obj['shop']['price_list']??'[]');
+        result_obj['shop']['option_list'] = JSON.parse(result_obj['shop']['option_list']??'[]');
+        result_obj['shop']['country_list'] = JSON.parse(result_obj['shop']['country_list']??'[]');
+
+        for(var i = 0;i<result_obj['shop']['option_list'].length;i++){
+            result_obj['shop']['option_list'][i] = option_obj[result_obj['shop']['option_list'][i]];
+        }
+        for(var i = 0;i<result_obj['shop']['country_list'].length;i++){
+            result_obj['shop']['country_list'][i] = country_obj[result_obj['shop']['country_list'][i]];
         }
         return response(req, res, 100, "success", result_obj)
 
@@ -1960,7 +1973,6 @@ const onTheTopItem = async (req, res) => {
         const { table, pk } = req.body;
         let result = await dbQueryList(`SELECT max(pk) from ${table}_table`);
         result = result?.result;
-        console.log(result)
         let max_pk = result[0]['max(pk)'];
 
         await db.query(`UPDATE ${table}_table SET sort=? WHERE pk=? `, [max_pk + 1, pk], async (err, result2) => {
@@ -2019,7 +2031,6 @@ const getAddressByText = async (req, res) => {
         let client_id = '3fbdbua1qd';
         let client_secret = 'sLpgki9KM7Rw60uQGwZTuiDj9b8eRH8HxSyecQOI';
         let api_url = 'https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode'; // json
-        console.log(text)
         if (!text) {
             return response(req, res, -100, "주소명을 입력 후 검색 버튼을 눌러주세요.", []);
         }
@@ -2063,7 +2074,37 @@ const getAddressByText = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", []);
     }
 }
-
+const getAddressByLocation = async (req, res) => {
+    try {
+        let { longitude, latitude } = req.body;
+        let client_id = '3fbdbua1qd';
+        let client_secret = 'sLpgki9KM7Rw60uQGwZTuiDj9b8eRH8HxSyecQOI';
+        let api_url = 'https://naveropenapi.apigw.ntruss.com/map-reversegeocode/v2/gc'; // json
+        if (!longitude || !latitude) {
+            return response(req, res, -100, "경도 위도를 전달해 주세요.", []);
+        }
+        const coord = await axios.get(`${api_url}`, {
+            params: {
+                coords: `${longitude},${latitude}`,
+                output: 'json',
+                orders: 'roadaddr,addr',
+            },
+            headers: {
+                "X-NCP-APIGW-API-KEY-ID": `${client_id}`,
+                "X-NCP-APIGW-API-KEY": `${client_secret}`,
+            },
+        })
+        const { name, region, land } = coord?.data?.results[0];
+        const { area1, area2, area3, area4 } = region;
+        const { addition0, addition1, addition2, addition3, addition4 } = land;
+        const address = `${area1.name} ${area2.name} ${area3.name} ${area4.name} `;
+        return response(req, res, 100, "success", address);
+       
+    } catch (e) {
+        console.log(e);
+        return response(req, res, -200, "서버 에러 발생", []);
+    }
+}
 
 function excelDateToJSDate(serial) {
     var utc_days = Math.floor(serial - 25569);
@@ -2091,5 +2132,5 @@ module.exports = {
     getUsers, getItems, getHomeContent, getSetting, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
     onSignUp, addItem, addItemByUser, addNoteImage, addSetting, addComment, addPopup, //insert 
     updateUser, updateItem, updateSetting, updateStatus, onTheTopItem, changeItemSequence, changePassword, updateComment, updatePopup,//update
-    deleteItem, onResign, getMyItems, getMyItem, getHeaderContent, getMasterContent, getReviewByMasterPk, getShop
+    deleteItem, onResign, getMyItems, getMyItem, getHeaderContent, getMasterContent, getReviewByMasterPk, getShop, getAddressByLocation
 }
