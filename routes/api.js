@@ -932,7 +932,7 @@ const getComments = (req, res) => {
             zColumn.push(category)
             columns += " AND comment_table.category_pk=? ";
         }
-        db.query(`SELECT comment_table.*, user_table.nickname, user_table.profile_img FROM comment_table LEFT JOIN user_table ON comment_table.user_pk = user_table.pk WHERE 1=1 ${columns} ORDER BY pk DESC`, zColumn, (err, result) => {
+        db.query(`SELECT comment_table.*, user_table.nickname FROM comment_table LEFT JOIN user_table ON comment_table.user_pk = user_table.pk WHERE 1=1 ${columns} ORDER BY pk DESC`, zColumn, (err, result) => {
             if (err) {
                 console.log(err)
                 return response(req, res, -200, "fail", [])
@@ -1694,7 +1694,7 @@ const getItems = async (req, res) => {
         let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date, type, city_pk } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
         let sql = `SELECT * FROM ${table}_table `;
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
-        
+
         let keyword_columns = getKewordListBySchema(table);
         let whereStr = " WHERE 1=1 ";
         if (level) {
