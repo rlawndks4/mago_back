@@ -12,7 +12,7 @@ const when = require('when')
 let iconv = require('iconv-lite');
 const { checkLevel, getSQLnParams, getUserPKArrStrWithNewPK,
     isNotNullOrUndefined, namingImagesPath, nullResponse,
-    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber, getKewordListBySchema
+    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber, getKewordListBySchema, listToObjKey
 } = require('../util')
 const {
     getRowsNumWithKeyword, getRowsNum, getAllDatas,
@@ -45,85 +45,8 @@ router.get('/', (req, res) => {
 });
 
 
-const addAlarm = (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 40)
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", [])
-        }
-        // 바로할지, 0-1, 요일, 시간, 
-        let { title, note, url, type, start_date, days, time } = req.body;
 
 
-        db.query("INSERT INTO alarm_table (title, note, url, type, start_date, days, time) VALUES (?, ?, ?, ?, ?, ?, ?)", [title, note, url, type, start_date, days, time], async (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "알람 추가 실패", [])
-            }
-            else {
-                if (type == 0) {
-                    sendAlarm(title, note, "alarm", result.insertId, url);
-                    insertQuery("INSERT INTO alarm_log_table (title, note, item_table, item_pk, url) VALUES (?, ?, ?, ?, ?)", [title, note, "alarm", result.insertId, url])
-                }
-                await db.query("UPDATE alarm_table SET sort=? WHERE pk=?", [result.insertId, result.insertId], (err, result) => {
-                    if (err) {
-                        console.log(err)
-                        return response(req, res, -200, "알람 추가 실패", [])
-                    }
-                    else {
-                        return response(req, res, 200, "알람 추가 성공", [])
-                    }
-                })
-            }
-        })
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const getNoticeAndAlarmLastPk = (req, res) => {
-    try {
-        db.query("SELECT * FROM alarm_log_table ORDER BY pk DESC LIMIT 1", async (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버에러발생", [])
-            }
-            else {
-                await db.query("SELECT * FROM notice_table ORDER BY pk DESC LIMIT 1", (err, result2) => {
-                    if (err) {
-                        console.log(err)
-                        return response(req, res, -200, "서버에러발생", [])
-
-                    }
-                    else {
-                        return response(req, res, 100, "success", { alarm_last_pk: result[0]?.pk ?? 0, notice_last_pk: result2[0]?.pk ?? 0 })
-                    }
-                })
-            }
-        })
-    } catch (e) {
-
-    }
-}
-const updateAlarm = (req, res) => {
-    try {
-        // 바로할지, 0-1, 요일, 시간, 
-        let { title, note, url, type, start_date, days, time, pk } = req.body;
-        db.query("UPDATE alarm_table SET title=?, note=?, url=?, type=?, start_date=?, days=?, time=? WHERE pk=?", [title, note, url, type, start_date, days, time, pk], (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "알람 수정 실패", [])
-            }
-            else {
-                return response(req, res, 200, "알람 수정 성공", [])
-            }
-        })
-
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
 const onSignUp = async (req, res) => {
     try {
         //logRequest(req)
@@ -305,14 +228,7 @@ const onLoginBySns = (req, res) => {
     }
 }
 
-const onLoginByPhone = (req, res) => {
-    try {
 
-    } catch (e) {
-        console.log(e)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
 const uploadProfile = (req, res) => {
     try {
         if (!req.file) {
@@ -832,205 +748,8 @@ const updateUser = async (req, res) => {
     }
 }
 
-const addMaster = (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 40)
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", [])
-        }
-        const id = req.body.id ?? "";
-        const pw = req.body.pw ?? "";
-        const name = req.body.name ?? "";
-        const nickname = req.body.nickname ?? "";
-        const user_level = req.body.user_level ?? 30;
-        const masterImg = '/image/' + req.files.master[0].fieldname + '/' + req.files.master[0].filename;
-        const channelImg = '/image/' + req.files.channel[0].fieldname + '/' + req.files.channel[0].filename;
-        //중복 체크 
-        let sql = "SELECT * FROM user_table WHERE id=?"
 
-        db.query(sql, [id], (err, result) => {
-            if (result.length > 0)
-                return response(req, res, -200, "ID가 중복됩니다.", [])
-            else {
-                crypto.pbkdf2(pw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
-                    // bcrypt.hash(pw, salt, async (err, hash) => {
-                    let hash = decoded.toString('base64')
 
-                    if (err) {
-                        console.log(err)
-                        return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
-                    }
-
-                    sql = 'INSERT INTO user_table (id, pw, name, nickname, user_level, profile_img, channel_img) VALUES (?, ?, ?, ?, ?, ?, ?)'
-                    await db.query(sql, [id, hash, name, nickname, user_level, masterImg, channelImg], async (err, result) => {
-
-                        if (err) {
-                            console.log(err)
-                            return response(req, res, -200, "회원 추가 실패", [])
-                        }
-                        else {
-                            await db.query("UPDATE user_table SET sort=? WHERE pk=?", [result?.insertId, result?.insertId], (err, resultup) => {
-                                if (err) {
-                                    console.log(err)
-                                    return response(req, res, -200, "회원 추가 실패", [])
-                                }
-                                else {
-                                    return response(req, res, 200, "회원 추가 성공", [])
-                                }
-                            })
-                        }
-                    })
-                })
-            }
-        })
-    }
-    catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const updateMaster = (req, res) => {
-    try {
-        const id = req.body.id ?? "";
-        let pw = req.body.pw ?? "";
-        const name = req.body.name ?? "";
-        const nickname = req.body.nickname ?? "";
-        const pk = req.body.pk;
-        let masterImg = "";
-        let channelImg = "";
-        let sql = "SELECT * FROM user_table WHERE id=? AND pk!=?"
-        db.query(sql, [id, pk], async (err, result) => {
-            if (result?.length > 0)
-                return response(req, res, -200, "ID가 중복됩니다.", [])
-            else {
-                let columns = " id=?, name=?, nickname=? ";
-                let zColumn = [id, name, nickname];
-                await crypto.pbkdf2(pw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
-                    // bcrypt.hash(pw, salt, async (err, hash) => {
-                    let hash = decoded.toString('base64')
-                    if (err) {
-                        console.log(err)
-                        return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
-                    } else {
-                        if (pw) {
-                            columns += ", pw =?"
-                            zColumn.push(hash);
-                        }
-                        if (req.files.master) {
-                            masterImg = '/image/' + req.files.master[0].fieldname + '/' + req.files.master[0].filename;
-                            columns += ", profile_img=?"
-                            zColumn.push(masterImg);
-                        }
-                        if (req.files.channel) {
-                            channelImg = '/image/' + req.files.channel[0].fieldname + '/' + req.files.channel[0].filename;
-                            columns += ", channel_img=?"
-                            zColumn.push(channelImg);
-                        }
-                        zColumn.push(pk)
-                        await db.query(`UPDATE user_table SET ${columns} WHERE pk=?`, zColumn, (err, result) => {
-                            if (err) {
-                                console.log(err)
-                                return response(req, res, -200, "서버 에러 발생", [])
-                            } else {
-                                return response(req, res, 100, "success", [])
-                            }
-                        })
-                    }
-                })
-
-            }
-        })
-
-    }
-    catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const addChannel = (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 40)
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", [])
-        }
-        const id = req.body.id ?? "";
-        const pw = req.body.pw ?? "";
-        const name = req.body.name ?? "";
-        const nickname = req.body.nickname ?? "";
-        const user_level = req.body.user_level ?? 25;
-        let image = '/image/' + req.file.fieldname + '/' + req.file.filename;
-        let sql = "SELECT * FROM user_table WHERE id=?"
-
-        db.query(sql, [id], (err, result) => {
-            if (result.length > 0)
-                return response(req, res, -200, "ID가 중복됩니다.", [])
-            else {
-                crypto.pbkdf2(pw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
-                    // bcrypt.hash(pw, salt, async (err, hash) => {
-                    let hash = decoded.toString('base64')
-
-                    if (err) {
-                        console.log(err)
-                        return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
-                    }
-
-                    sql = 'INSERT INTO user_table (id, pw, name, nickname, user_level, channel_img) VALUES (?, ?, ?, ?, ?, ?)'
-                    await db.query(sql, [id, hash, name, nickname, user_level, image], async (err, result) => {
-
-                        if (err) {
-                            console.log(err)
-                            return response(req, res, -200, "fail", [])
-                        }
-                        else {
-                            await db.query("UPDATE user_table SET sort=? WHERE pk=?", [result?.insertId, result?.insertId], (err, resultup) => {
-                                if (err) {
-                                    console.log(err)
-                                    return response(req, res, -200, "fail", []);
-                                }
-                                else {
-                                    return response(req, res, 200, "success", []);
-                                }
-                            })
-                        }
-                    })
-                })
-            }
-        })
-
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", []);
-    }
-}
-
-const updateChannel = (req, res) => {
-    try {
-        let nickname = req.body.nickname;
-        const pk = req.body.pk;
-        let image = "";
-        let columns = " nickname=? ";
-        let zColumn = [nickname];
-        if (req.file) {
-            image = '/image/' + req.file.fieldname + '/' + req.file.filename;
-            columns += ", channel_img=? ";
-            zColumn.push(image);
-        }
-        zColumn.push(pk);
-        db.query(`UPDATE user_table SET ${columns} WHERE pk=?`, zColumn, (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "fail", [])
-            }
-            else {
-                return response(req, res, 200, "성공적으로 수정되었습니다.", [])
-            }
-        })
-
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
 const getHomeContent = async (req, res) => {
     try {
         let result_list = [];
@@ -1093,178 +812,7 @@ const getHeaderContent = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const getAcademyList = async (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 0)
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", [])
-        }
-        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>='${returnMoment().substring(0, 10)}' AND use_status=1 AND transaction_status >= 0   ORDER BY pk DESC`,);
-        my_enrolment_list = my_enrolment_list?.result;
-        let academy_pk_list = [];
-        for (var i = 0; i < my_enrolment_list.length; i++) {
-            academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
-        }
-        let result_list = [];
 
-        let sql_list = [
-            { table: 'academy', sql: `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk ${academy_pk_list.length > 0 ? `WHERE academy_category_table.pk IN (${academy_pk_list.join()})` : 'WHERE 1=2'}  ORDER BY academy_category_table.sort DESC`, type: 'list' },
-            { table: 'master', sql: 'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC', type: 'list' },
-        ];
-        if (decode?.user_level >= 40) {
-            sql_list.shift();
-            sql_list.push({
-                table: 'academy',
-                sql: `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk `,
-                type: 'list'
-            })
-        }
-        for (var i = 0; i < sql_list.length; i++) {
-            result_list.push(queryPromise(sql_list[i]?.table, sql_list[i]?.sql));
-        }
-        for (var i = 0; i < result_list.length; i++) {
-            await result_list[i];
-        }
-        let result_obj = {};
-        for (var i = 0; i < sql_list.length; i++) {
-            result_list.push(queryPromise(sql_list[i].table, sql_list[i].sql, sql_list[i].type));
-        }
-        for (var i = 0; i < result_list.length; i++) {
-            await result_list[i];
-        }
-        let result = (await when(result_list));
-        for (var i = 0; i < (await result).length; i++) {
-            result_obj[(await result[i])?.table] = (await result[i])?.data;
-        }
-        return response(req, res, 100, "success", result_obj)
-
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-
-const getMyAcademyClasses = async (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 0)
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", [])
-        }
-        let master_pk = req.body.master_pk;
-        let my_enrolment_list = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND end_date>=? AND use_status=1 AND use_status=1 AND transaction_status >= 0 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
-        my_enrolment_list = my_enrolment_list?.result;
-        let academy_pk_list = [];
-        if (master_pk) {
-            for (var i = 0; i < my_enrolment_list.length; i++) {
-                if (master_pk == my_enrolment_list[i]?.master_pk) {
-                    academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
-                }
-            }
-        } else {
-            for (var i = 0; i < my_enrolment_list.length; i++) {
-                academy_pk_list.push(my_enrolment_list[i]?.academy_category_pk)
-            }
-        }
-        let academy_list_sql = `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk ${academy_pk_list.length > 0 ? `WHERE academy_category_table.pk IN (${academy_pk_list.join()})` : 'WHERE 1=2'}  ORDER BY academy_category_table.sort DESC`;
-        if (decode?.user_level >= 40) {
-            academy_list_sql = `SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk ${master_pk ? `WHERE master_pk=${master_pk}` : ''} ORDER BY academy_category_table.sort DESC`
-        }
-        let academy_list = await dbQueryList(academy_list_sql)
-        academy_list = academy_list?.result;
-        return response(req, res, 100, "success", academy_list);
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const getMyAcademyClass = async (req, res) => {//강의실 입성시 구독여부 확인 후 전송
-    try {
-        const decode = checkLevel(req.cookies.token, 0)
-        if (!decode) {
-            return response(req, res, -150, "로그인 후 이용 가능합니다.", [])
-        }
-        const { pk } = req.body;
-        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND academy_category_pk=${pk} AND end_date>=? AND use_status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
-        is_exist = is_exist?.result;
-        if (is_exist.length > 0) {
-        } else {
-            return response(req, res, -150, "권한이 없습니다.", [])
-        }
-        let academy_category = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${pk}`);
-        academy_category = academy_category?.result[0];
-        return response(req, res, 100, "success", academy_category);
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const getMyAcademyList = async (req, res) => {//강의 리스트 불러올 시 구독여부 확인 후 전송
-    try {
-        const decode = checkLevel(req.cookies.token, 0)
-        if (!decode) {
-            return response(req, res, -150, "로그인 후 이용 가능합니다.", [])
-        }
-        let { pk, page, page_cut } = req.body;
-        console.log(req.body);
-        page_cut = 5;
-        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND transaction_status >= 0 AND academy_category_pk=${pk} AND end_date>=? AND status=1 ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
-        is_exist = is_exist?.result;
-        if (is_exist.length > 0) {
-
-        } else {
-            if (decode?.user_level < 40) {
-                return response(req, res, -150, "권한이 없습니다.", [])
-            }
-        }
-        let is_period = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${pk} AND (start_date<='${returnMoment().substring(0, 10)}' AND end_date>='${returnMoment().substring(0, 10)}') `)
-        is_period = is_period?.result;
-        if (is_period.length > 0) {
-        } else {
-            if (decode?.user_level < 40) {
-                return response(req, res, -150, "수강 기간이 아닙니다.", [])
-            }
-        }
-        let academy_list_sql = `SELECT academy_table.*, user_table.nickname AS nickname FROM academy_table LEFT JOIN user_table ON academy_table.master_pk=user_table.pk WHERE academy_table.category_pk=${pk} AND academy_table.status=1 ORDER BY academy_table.sort DESC `
-        if (page) {
-            academy_list_sql += ` LIMIT ${(page - 1) * page_cut}, ${page_cut} `;
-        }
-        let academy_count = await dbQueryList(`SELECT COUNT(*) FROM academy_table WHERE category_pk=${pk} AND status=1 `);
-        academy_count = academy_count?.result[0];
-        academy_count = academy_count['COUNT(*)'];
-        let maxPage = await makeMaxPage(academy_count, page_cut);
-        let academy_list = await dbQueryList(academy_list_sql);
-        academy_list = academy_list?.result;
-        return response(req, res, 100, "success", { maxPage: maxPage, data: academy_list });
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const getAcademyCategoryContent = async (req, res) => {
-    try {
-        let { pk, page, page_cut } = req.query;
-        let academy_content = undefined;
-        page_cut = 4;
-        if (page == 1) {
-            academy_content = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${pk}`);
-            academy_content = await academy_content?.result[0];
-        }
-        let review_page = await dbQueryList(`SELECT COUNT(*) FROM review_table WHERE academy_category_pk=${pk}`);
-        review_page = review_page?.result[0];
-        review_page = review_page['COUNT(*)'] ?? 0;
-        review_page = await makeMaxPage(review_page, page_cut);
-        let review_sql = ` SELECT review_table.*,academy_category_table.main_img AS main_img, user_table.nickname AS nickname FROM review_table `;
-        review_sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
-        review_sql += ` LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
-        review_sql += ` WHERE academy_category_pk=${pk} ORDER BY pk DESC LIMIT ${(page - 1) * page_cut}, ${page_cut} `;
-        let review_list = await dbQueryList(review_sql);
-        review_list = review_list?.result;
-        return response(req, res, 100, "success", { maxPage: review_page, review_list: review_list, academy_content: academy_content });
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
 const getMasterContent = async (req, res) => {
     try {
         let { pk, page, page_cut } = req.query;
@@ -1342,55 +890,7 @@ const getReviewByMasterPk = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const getEnrolmentList = async (req, res) => {
-    try {
-        let result_list = [];
-        let sql_list = [
-            { table: 'banner', sql: 'SELECT enrolment_banner_img_1,enrolment_banner_img_2,enrolment_banner_img_3,enrolment_banner_img_4,enrolment_banner_img_5, enrolment_bottom_banner, enrolment_bottom_banner_link, enrolment_banner_link_1,enrolment_banner_link_2,enrolment_banner_link_3,enrolment_banner_link_4,enrolment_banner_link_5 FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
-            { table: 'best_academy', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4', type: 'list' },
-            { table: 'master', sql: 'SELECT *, user_table.nickname AS title FROM user_table WHERE user_level=30 AND status=1 ORDER BY sort DESC', type: 'list' },
-            { table: 'contents', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.status=1 ORDER BY academy_category_table.sort DESC', type: 'list' },
-        ];
 
-        for (var i = 0; i < sql_list.length; i++) {
-            result_list.push(queryPromise(sql_list[i]?.table, sql_list[i]?.sql));
-        }
-        for (var i = 0; i < result_list.length; i++) {
-            await result_list[i];
-        }
-        let result_obj = {};
-        for (var i = 0; i < sql_list.length; i++) {
-            result_list.push(queryPromise(sql_list[i].table, sql_list[i].sql, sql_list[i].type));
-        }
-        for (var i = 0; i < result_list.length; i++) {
-            await result_list[i];
-        }
-        let result = (await when(result_list));
-        for (var i = 0; i < (await result).length; i++) {
-            result_obj[(await result[i])?.table] = (await result[i])?.data;
-        }
-        return response(req, res, 100, "success", result_obj)
-
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const getChannelList = (req, res) => {
-    try {
-        db.query("SELECT * FROM user_table WHERE user_level IN (25, 30) ", (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", []);
-            } else {
-                return response(req, res, 100, "success", result);
-            }
-        })
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
 const getVideo = (req, res) => {
     try {
         const pk = req.params.pk;
@@ -1418,57 +918,7 @@ const getVideo = (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const getVideoContent = (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 0)
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", [])
-        }
 
-        const pk = req.query.pk;
-        let sql1 = `SELECT video_table.* , user_table.nickname, user_table.name FROM video_table LEFT JOIN user_table ON video_table.user_pk = user_table.pk WHERE video_table.pk=? LIMIT 1`;//비디오 정보
-        let sql2 = `SELECT video_relate_table.*, video_table.* FROM video_relate_table LEFT JOIN video_table ON video_relate_table.relate_video_pk = video_table.pk WHERE video_relate_table.video_pk=? `//관련영상
-        let sql3 = `SELECT video_table.pk, video_table.link, video_table.title, user_table.name, user_table.nickname FROM video_table LEFT JOIN user_table ON video_table.user_pk = user_table.pk ORDER BY pk DESC LIMIT 5`;//최신영상
-        if (req.query.views) {
-            db.query("UPDATE video_table SET views=views+1 WHERE pk=?", [pk], (err, result_view) => {
-                if (err) {
-                    console.log(err)
-                    return response(req, res, -200, "서버 에러 발생", [])
-                } else {
-                }
-            })
-        }
-        db.query(sql1, [pk], async (err, result1) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", [])
-            } else {
-                await db.query(sql2, [pk], async (err, result2) => {
-                    if (err) {
-                        console.log(err)
-                        return response(req, res, -200, "서버 에러 발생", [])
-                    } else {
-                        await db.query(sql3, async (err, result3) => {
-                            if (err) {
-                                console.log(err)
-                                return response(req, res, -200, "서버 에러 발생", [])
-                            } else {
-                                return response(req, res, 100, "success", {
-                                    video: result1[0],
-                                    relates: result2,
-                                    latests: result3
-                                })
-                            }
-                        })
-                    }
-                })
-            }
-        })
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
 const getComments = (req, res) => {
     try {
 
@@ -1550,87 +1000,7 @@ const getCommentsManager = (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const addOneWord = (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 25)
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", [])
-        }
-        const { title, hash, suggest_title, note, user_pk } = req.body;
-        let zColumn = [title, hash, suggest_title, note, user_pk];
-        let columns = "(title, hash, suggest_title, note, user_pk";
-        let values = "(?, ?, ?, ?, ?";
-        let image = "";
-        if (req.file) {
-            image = '/image/' + req.file.fieldname + '/' + req.file.filename;
-        } else {
-            image = req.body.url ?? "";
-        }
-        zColumn.push(image);
-        columns += ', main_img)'
-        values += ',?)'
-        db.query(`INSERT INTO oneword_table ${columns} VALUES ${values}`, zColumn, async (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", [])
-            } else {
-                await db.query("UPDATE oneword_table SET sort=? WHERE pk=?", [result?.insertId, result?.insertId], (err, resultup) => {
-                    if (err) {
-                        console.log(err)
-                        return response(req, res, -200, "fail", [])
-                    }
-                    else {
-                        return response(req, res, 200, "success", [])
-                    }
-                })
 
-            }
-        })
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const addOneEvent = (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 25)
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", [])
-        }
-        const { title, hash, suggest_title, note, user_pk } = req.body;
-        let zColumn = [title, hash, suggest_title, note, user_pk];
-        let columns = "(title, hash, suggest_title, note, user_pk";
-        let values = "(?, ?, ?, ?, ?";
-        let image = "";
-        if (req.file) {
-            image = '/image/' + req.file.fieldname + '/' + req.file.filename;
-        } else {
-            image = req.body.url ?? "";
-        }
-        zColumn.push(image);
-        columns += ', main_img)'
-        values += ',?)'
-        db.query(`INSERT INTO oneevent_table ${columns} VALUES ${values}`, zColumn, async (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", []);
-            } else {
-                await db.query("UPDATE oneevent_table SET sort=? WHERE pk=?", [result?.insertId, result?.insertId], (err, resultup) => {
-                    if (err) {
-                        console.log(err)
-                        return response(req, res, -200, "fail", [])
-                    }
-                    else {
-                        return response(req, res, 200, "success", [])
-                    }
-                })
-            }
-        })
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
 const getKoreaByEng = (str) => {
     let ans = "";
     if (str == 'oneword') {
@@ -1864,122 +1234,7 @@ const updatePlusUtil = async (schema, body) => {
         let result = await insertQuery(`UPDATE subscribe_table SET end_date=? WHERE academy_category_pk=?`, [body?.end_date, body?.pk]);
     }
 }
-const addIssueCategory = (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 25)
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", [])
-        }
-        const { title, sub_title } = req.body;
-        let image = "";
-        if (req.file) {
-            image = '/image/' + req.file.fieldname + '/' + req.file.filename;
-        }
-        db.query("INSERT INTO issue_category_table (title,sub_title,main_img) VALUES (?,?,?)", [title, sub_title, image], async (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", []);
-            } else {
-                await db.query("UPDATE issue_category_table SET sort=? WHERE pk=?", [result?.insertId, result?.insertId], (err, resultup) => {
-                    if (err) {
-                        console.log(err)
-                        return response(req, res, -200, "fail", [])
-                    }
-                    else {
-                        return response(req, res, 200, "success", [])
-                    }
-                })
-            }
-        })
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const updateIssueCategory = (req, res) => {
-    try {
-        const { title, sub_title, pk } = req.body;
-        let zColumn = [title, sub_title];
-        let columns = " title=?, sub_title=? ";
 
-        let image = "";
-        if (req.file) {
-            image = '/image/' + req.file.fieldname + '/' + req.file.filename;
-            zColumn.push(image);
-            columns += ', main_img=? '
-        }
-        zColumn.push(pk)
-        db.query(`UPDATE issue_category_table SET ${columns} WHERE pk=?`, zColumn, (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", []);
-            } else {
-                return response(req, res, 100, "success", []);
-            }
-        })
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const addFeatureCategory = (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 25)
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", [])
-        }
-        const { title, sub_title } = req.body;
-        let image = "";
-        if (req.file) {
-            image = '/image/' + req.file.fieldname + '/' + req.file.filename;
-        }
-        db.query("INSERT INTO feature_category_table (title,sub_title,main_img) VALUES (?,?,?)", [title, sub_title, image], async (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", []);
-            } else {
-                await db.query("UPDATE feature_category_table SET sort=? WHERE pk=?", [result?.insertId, result?.insertId], (err, resultup) => {
-                    if (err) {
-                        console.log(err)
-                        return response(req, res, -200, "fail", [])
-                    }
-                    else {
-                        return response(req, res, 200, "success", [])
-                    }
-                })
-            }
-        })
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const updateFeatureCategory = (req, res) => {
-    try {
-        const { title, sub_title, pk } = req.body;
-        let zColumn = [title, sub_title];
-        let columns = " title=?, sub_title=? ";
-
-        let image = "";
-        if (req.file) {
-            image = '/image/' + req.file.fieldname + '/' + req.file.filename;
-            zColumn.push(image);
-            columns += ', main_img=? '
-        }
-        zColumn.push(pk)
-        db.query(`UPDATE feature_category_table SET ${columns} WHERE pk=?`, zColumn, (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", []);
-            } else {
-                return response(req, res, 100, "success", []);
-            }
-        })
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
 const addPopup = (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 25)
@@ -2037,193 +1292,7 @@ const updatePopup = (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const getItem = async (req, res) => {
-    try {
-        let table = req.query.table ?? "user";
-        let pk = req.query.pk;
-        const decode = checkLevel(req.cookies.token, 0)
-        if ((!decode || decode?.user_level == -10) && table != 'notice' && table != 'master') {
-            return response(req, res, -150, "권한이 없습니다.", [])
-        }
-        if (table == 'master') {
-            table = 'user'
-        }
-        let sql = "";
-        if (pk) {
-            sql = `SELECT * FROM ${table}_table  WHERE pk=${pk} `;
-        } else {
-            sql = `SELECT * FROM ${table}_table ORDER BY pk DESC LIMIT 1`;
-        }
-        if (req.query.views && pk) {
-            db.query(`UPDATE ${table}_table SET views=views+1 WHERE pk=?`, [pk], (err, result_view) => {
-                if (err) {
-                    console.log(err)
-                    return response(req, res, -200, "서버 에러 발생", [])
-                }
-            })
-        }
-        db.query(sql, (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생s", [])
-            } else {
-                if (categoryToNumber(table) != -1) {
-                    return response(req, res, 100, "success", result[0])
-                } else {
-                    return response(req, res, 100, "success", result[0])
-                }
-            }
-        })
 
-    }
-    catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-
-const addVideo = (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 25)
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", [])
-        }
-        const { user_pk, title, link, note, want_push, font_color, background_color, relate_video, note_align } = req.body;
-        db.query("INSERT INTO video_table (user_pk, title, link, note, font_color, background_color, note_align) VALUES (?, ?, ?, ?, ?, ?, ?)", [user_pk, title, link, note, font_color, background_color, note_align], async (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", [])
-            } else {
-                if (want_push == 1) {
-                    sendAlarm(`${title}`, "", "video", result.insertId, `/video/${result.insertId}`);
-                    insertQuery("INSERT INTO alarm_log_table (title, note, item_table, item_pk, url) VALUES (?, ?, ?, ?, ?)", [getKoreaByEng("video") + title, "", "video", result.insertId, `/video/${result.insertId}`])
-
-                }
-                await db.query("UPDATE video_table SET sort=? WHERE pk=?", [result?.insertId, result?.insertId], (err, resultup) => {
-                    if (err) {
-                        console.log(err)
-                        return response(req, res, -200, "fail", [])
-                    }
-                })
-                let relate_videos = JSON.parse(relate_video)
-                if (relate_videos.length > 0) {
-                    let relate_list = [];
-                    for (var i = 0; i < relate_videos.length; i++) {
-                        relate_list[i] = [result?.insertId, relate_videos[i]];
-                    }
-                    await db.query("INSERT INTO video_relate_table (video_pk, relate_video_pk) VALUES ? ", [relate_list], async (err, result2) => {
-                        if (err) {
-                            console.log(err)
-                            return response(req, res, -200, "서버 에러 발생", [])
-                        } else {
-
-                        }
-                    })
-                } else {
-                    return response(req, res, 100, "success", [])
-                }
-            }
-        })
-    }
-    catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const updateVideo = (req, res) => {
-    try {
-        const { user_pk, title, link, note, font_color, background_color, relate_video, note_align, pk } = req.body;
-        db.query("UPDATE video_table SET user_pk=?, title=?, link=?, note=?, font_color=?, background_color=?, note_align=? WHERE pk=?", [user_pk, title, link, note, font_color, background_color, note_align, pk], async (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", [])
-            } else {
-                await db.query("DELETE FROM video_relate_table WHERE video_pk=?", [pk], async (err, result1) => {
-                    if (err) {
-                        console.log(err)
-                        return response(req, res, -200, "서버 에러 발생", [])
-                    } else {
-                        let relate_videos = JSON.parse(relate_video)
-                        if (relate_videos.length > 0) {
-                            let relate_list = [];
-                            for (var i = 0; i < relate_videos.length; i++) {
-                                relate_list[i] = [pk, relate_videos[i]];
-                            }
-                            await db.query("INSERT INTO video_relate_table (video_pk, relate_video_pk) VALUES ? ", [relate_list], (err, result2) => {
-                                if (err) {
-                                    console.log(err)
-                                    return response(req, res, -200, "서버 에러 발생", [])
-                                } else {
-                                    return response(req, res, 100, "success", [])
-                                }
-                            })
-                        } else {
-                            return response(req, res, 100, "success", [])
-                        }
-
-                    }
-                })
-
-            }
-        })
-    }
-    catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const addNotice = (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 25)
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", [])
-        }
-        const { title, note, note_align, want_push, user_pk } = req.body;
-        db.query("INSERT INTO notice_table ( title, note, note_align, user_pk) VALUES (?, ?, ?, ?)", [title, note, note_align, user_pk], async (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", [])
-            } else {
-                if (want_push == 1) {
-                    sendAlarm(`${title}`, "", "notice", result.insertId, `/post/notice/${result.insertId}`);
-                    insertQuery("INSERT INTO alarm_log_table (title, note, item_table, item_pk, url) VALUES (?, ?, ?, ?, ?)", [getKoreaByEng("notice") + title, "", "notice", result.insertId, `/post/notice/${result.insertId}`])
-
-                }
-                //insertQuery("INSERT INTO alarm_log_table (title, note, item_table, item_pk) VALUES (?, ?, ?, ?)", [title, "", "notice", result.insertId])
-                await db.query("UPDATE notice_table SET sort=? WHERE pk=?", [result?.insertId, result?.insertId], (err, resultup) => {
-                    if (err) {
-                        console.log(err)
-                        return response(req, res, -200, "fail", [])
-                    }
-                    else {
-                        return response(req, res, 200, "success", [])
-                    }
-                })
-            }
-        })
-    }
-    catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const updateNotice = (req, res) => {
-    try {
-        const { title, note, note_align, pk } = req.body;
-        db.query("UPDATE notice_table SET  title=?, note=?, note_align=? WHERE pk=?", [title, note, note_align, pk], (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", [])
-            } else {
-                return response(req, res, 100, "success", [])
-            }
-        })
-    }
-    catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
 const addNoteImage = (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 25)
@@ -2257,9 +1326,6 @@ const addImageItems = (req, res) => {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", []);
     }
-}
-const processParallel = () => {
-
 }
 
 const onSearchAllItem = async (req, res) => {
@@ -2507,36 +1573,7 @@ const itemCount = (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const getOneWord = (req, res) => {
-    try {
-        db.query("SELECT * FROM oneword_table ORDER BY sort DESC LIMIT 1", (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", [])
-            } else {
-                return response(req, res, 100, "success", result[0])
-            }
-        })
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const getOneEvent = (req, res) => {
-    try {
-        db.query("SELECT * FROM oneevent_table ORDER BY sort DESC LIMIT 1", (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", [])
-            } else {
-                return response(req, res, 100, "success", result[0])
-            }
-        })
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
+
 const getOptionObjBySchema = async (schema, whereStr) => {
     let obj = {};
     if (schema == 'subscribe') {
@@ -2564,26 +1601,77 @@ const getShops = async (req, res) => {
             'sub_city_table.name AS sub_city_name',
             'sub_city_table.name AS sub_city_name',
             'shop_theme_table.name AS theme_name',
-            'shop_country_table.name AS country_name',
-            'shop_country_table.img_src AS country_img',
         ]
         let sql = `SELECT ${column_list.join()} FROM shop_table `;
         sql += ` LEFT JOIN city_table ON shop_table.city_pk=city_table.pk `;
         sql += ` LEFT JOIN sub_city_table ON shop_table.sub_city_pk=sub_city_table.pk `;
         sql += ` LEFT JOIN shop_theme_table ON shop_table.theme_pk=shop_theme_table.pk `;
-        sql += ` LEFT JOIN shop_country_table ON shop_table.country_pk=shop_country_table.pk `;
         sql += ` WHERE 1=1 `;
 
-        if(theme){
+        if (theme) {
             sql += ` AND theme_pk=${theme} `;
         }
-        if(city){
+        if (city) {
             sql += ` AND shop_table.city_pk=${city} `;
         }
+        let country_list = await dbQueryList(`SELECT * FROM shop_country_table`);
+        country_list = country_list?.result;
+        let country_obj = listToObjKey(country_list, 'pk');
         let shops = await dbQueryList(sql);
         shops = shops?.result;
 
+        for (var i = 0; i < shops.length; i++) {
+            shops[i]['country_list'] = JSON.parse(shops[i]['country_list']);
+            for (var j = 0; j < shops[i]['country_list'].length; j++) {
+                if (country_obj[shops[i]['country_list'][i]]) {
+                    shops[i]['country_list'][j] = country_obj[shops[i]['country_list'][j]];
+                }
+            }
+            console.log(shops[i]['country_list'])
+        }
         return response(req, res, 100, "success", shops);
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+const getShop = async (req, res) => {
+    try {
+        let { pk, name } = req.body;
+        let result_list = [];
+        if (!pk && !name) {
+            return response(req, res, -404, "잘못된 접근입니다.", [])
+        }
+        if (!pk && name) {
+            let shop = await dbQueryList(`SELECT * FROM shop_table WHERE name='${name}'`);
+            shop = shop?.result[0];
+            if (!shop) {
+                return response(req, res, -404, "잘못된 접근입니다.", [])
+            } else {
+                pk = shop?.pk;
+            }
+        }
+        let sql_list = [
+            { table: 'shop', sql: `SELECT * FROM shop_table WHERE pk=${pk}`, type: 'obj' },
+            { table: 'review', sql: `SELECT * FROM shop_review_table WHERE status=1 AND shop_pk=${pk} ORDER BY pk DESC`, type: 'list' },
+            { table: 'event', sql: `SELECT * FROM shop_event_table WHERE status=1 AND shop_pk=${pk} ORDER BY pk DESC`, type: 'list' },
+        ];
+        for (var i = 0; i < result_list.length; i++) {
+            await result_list[i];
+        }
+        let result_obj = {};
+        for (var i = 0; i < sql_list.length; i++) {
+            result_list.push(queryPromise(sql_list[i].table, sql_list[i].sql, sql_list[i].type));
+        }
+        for (var i = 0; i < result_list.length; i++) {
+            await result_list[i];
+        }
+        let result = (await when(result_list));
+        for (var i = 0; i < (await result).length; i++) {
+            result_obj[(await result[i])?.table] = (await result[i])?.data;
+        }
+        return response(req, res, 100, "success", result_obj)
+
     } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
@@ -2753,145 +1841,7 @@ function addDays(date, days) {
     clone.setDate(date.getDate() + days)
     return clone;
 }
-const onSubscribe = async (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 0)
-        if (!decode) {
-            return response(req, res, -150, "회원전용 메뉴입니다.", []);
-        }
-        let { item_pk, type_num, bag_pk } = req.body;
-        if (type_num == 1) {
-            return response(req, res, -100, "잘못된 접근 입니다.", []);
-        }
 
-        let bag_content = {};
-        if (bag_pk) {
-            bag_content = await dbQueryList(`SELECT * FROM subscribe_table WHERE pk=${bag_pk}`);
-            bag_content = bag_content?.result[0];
-            item_pk = bag_content?.academy_category_pk;
-            type_num = 1;
-        }
-        let is_already_bag = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=0 AND academy_category_pk=${item_pk} AND end_date >= '${returnMoment().substring(0, 10)}'`);
-        is_already_bag = is_already_bag?.result;
-        if (is_already_bag.length > 0) {
-            return response(req, res, -100, "이미 담긴 상품 입니다.", []);
-        }
-        let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item_pk} AND end_date >= '${returnMoment().substring(0, 10)}'`);
-        is_already_subscribe = is_already_subscribe?.result;
-        if (is_already_subscribe.length > 0) {
-            return response(req, res, -100, "현재 이용중인 구독상품 입니다.", []);
-        }
-        let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${item_pk}`);
-        item = item?.result[0];
-        if (!item?.pk) {
-            return response(req, res, -100, "잘못된 구독상품 입니다.", []);
-        }
-        if (item?.is_deadline == 1) {
-            return response(req, res, -100, "마감된 상품 입니다.", []);
-        }
-        let master = await dbQueryList(`SELECT * FROM user_table WHERE pk=${item?.master_pk}`);
-        master = master?.result[0];
-        let today = new Date();
-        let period = addDays(today, item?.period);
-        period = returnMoment(period);
-        await db.beginTransaction();
-        let keys = ['user_pk', 'master_pk', 'academy_category_pk', 'end_date', 'status'];
-        let keys_q = [];
-        for (var i = 0; i < keys.length; i++) {
-            keys_q.push('?');
-        }
-        let values = [decode?.pk, master?.pk, item?.pk, period, type_num];
-        if (type_num == 1) {
-            keys.push('price');
-            keys_q.push('?');
-            values.push((item?.price ?? 0) * ((100 - item?.discount_percent) / 100));
-        }
-        let result = undefined;
-        if (bag_pk) {
-            result = insertQuery(`UPDATE subscribe_table SET status=1, price=? WHERE pk=?`, [((item?.price ?? 0) * ((100 - item?.discount_percent) / 100)), bag_pk])
-        } else {
-            result = insertQuery(`INSERT INTO subscribe_table (${keys.join()}) VALUES (${keys_q.join()})`, values);
-        }
-        await db.commit();
-        return response(req, res, 100, "success", []);
-
-    } catch (err) {
-        await db.rollback();
-        console.log(err);
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const getSubscribe = async (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 0)
-        if (!decode) {
-            return response(req, res, -150, "회원전용 메뉴입니다.", []);
-        }
-        let { item_pk, type_num, bag_pk } = req.body;
-
-        let bag_content = {};
-        if (bag_pk) {
-            bag_content = await dbQueryList(`SELECT * FROM subscribe_table WHERE pk=${bag_pk}`);
-            bag_content = bag_content?.result[0];
-            item_pk = bag_content?.academy_category_pk;
-            type_num = 1;
-        }
-
-        let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item_pk} AND end_date >= '${returnMoment().substring(0, 10)}'`);
-        is_already_subscribe = is_already_subscribe?.result;
-        if (is_already_subscribe.length > 0) {
-            return response(req, res, -100, "현재 이용중인 구독상품 입니다.", []);
-        }
-        let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${item_pk}`);
-        item = item?.result[0];
-        if (!item?.pk) {
-            return response(req, res, -100, "잘못된 구독상품 입니다.", []);
-        }
-        if (item?.is_deadline == 1) {
-            return response(req, res, -100, "마감된 상품 입니다.", []);
-        }
-        let master = await dbQueryList(`SELECT * FROM user_table WHERE pk=${item?.master_pk}`);
-        master = master?.result[0];
-        let today = new Date();
-        let period = addDays(today, item?.period);
-        period = returnMoment(period);
-        await db.beginTransaction();
-        let keys = ['user_pk', 'master_pk', 'academy_category_pk', 'end_date', 'status'];
-        let keys_q = [];
-        for (var i = 0; i < keys.length; i++) {
-            keys_q.push('?');
-        }
-        let values = [decode?.pk, master?.pk, item?.pk, period, type_num];
-        if (type_num == 1) {
-            keys.push('price');
-            keys_q.push('?');
-            values.push((item?.price ?? 0) * ((100 - item?.discount_percent) / 100));
-        }
-        let result = undefined;
-        if (bag_pk) {
-            result = insertQuery(`UPDATE subscribe_table SET status=1, price=? WHERE pk=?`, [((item?.price ?? 0) * ((100 - item?.discount_percent) / 100)), bag_pk])
-        } else {
-            result = insertQuery(`INSERT INTO subscribe_table (${keys.join()}) VALUES (${keys_q.join()})`, values);
-        }
-        await db.commit();
-        return response(req, res, 100, "success", []);
-
-    } catch (err) {
-        await db.rollback();
-        console.log(err);
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-
-const updateSubscribe = async (req, res) => {
-    try {
-
-    } catch (err) {
-        await db.rollback();
-        console.log(err);
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
 const getSetting = (req, res) => {
     try {
         db.query("SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1", (err, result) => {
@@ -3062,89 +2012,6 @@ const changeItemSequence = (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const getCountNotReadNoti = async (req, res) => {
-    try {
-        const { pk, mac_adress } = req.body;
-        let notice_ai = await getTableAI("notice").result - 1;
-        let alarm_ai = await getTableAI("alarm").result - 1;
-        let mac = mac_adress;
-        if (!pk && !mac_adress) {
-            mac = await new Promise((resolve, reject) => {
-                macaddress.one(function (err, mac) {
-                    if (err) {
-                        console.log(err)
-                        reject({
-                            code: -200,
-                            result: ""
-                        })
-                    }
-                    else {
-                        resolve({
-                            code: 200,
-                            result: mac
-                        })
-                    }
-                })
-            })
-            mac = mac.result;
-        }
-        if (pk) {
-            db.query("SELECT * FROM user_table WHERE pk=?", [pk], (err, result) => {
-                if (err) {
-                    console.log(err)
-                    return response(req, res, -200, "서버 에러 발생", [])
-                } else {
-                    return response(req, res, 100, "success", { item: result[0], notice_ai: notice_ai, alarm_ai: alarm_ai })
-                }
-            })
-        } else if (mac) {
-            db.query("SELECT * FROM mac_check_noti_table WHERE mac_address=?", [mac], async (err, result) => {
-                if (err) {
-                    console.log(err)
-                    return response(req, res, -200, "서버 에러 발생", [])
-                } else {
-                    if (result.length > 0) {
-                        return response(req, res, 100, "success", { mac: result[0], notice_ai: notice_ai, alarm_ai: alarm_ai })
-                    } else {
-                        await db.query("INSERT INTO mac_check_noti_table (mac_address) VALUES (?)", [mac], (err, result) => {
-                            if (err) {
-                                console.log(err)
-                                return response(req, res, -200, "서버 에러 발생", [])
-                            } else {
-                                return response(req, res, 100, "success", { item: { mac_address: mac, last_alarm_pk: 0, last_notice_pk: 0 }, notice_ai: notice_ai, alarm_ai: alarm_ai })
-                            }
-                        })
-                    }
-                }
-            })
-        }
-
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
-const setCountNotReadNoti = async (req, res) => {
-    try {
-        const { table, pk, mac, category } = req.body;
-        let notice_ai = await getTableAI("notice").result - 1;
-        let alarm_ai = await getTableAI("alarm").result - 1;
-
-        let key = pk || mac;
-        db.query(`UPDATE ${table}_table SET last_${category}_pk=${category == 'notice' ? notice_ai : alarm_ai} WHERE ${pk ? 'pk' : 'mac_address'}=?`, [key], (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", [])
-            } else {
-                return response(req, res, 100, "success", { item: { mac_address: mac, last_alarm_pk: 0, last_notice_pk: 0 }, notice_ai: notice_ai.result, alarm_ai: alarm_ai.result })
-            }
-        })
-
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
 
 const getAddressByText = async (req, res) => {
     try {
@@ -3197,28 +2064,7 @@ const getAddressByText = async (req, res) => {
     }
 }
 
-const checkClassStatus = async (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 0);
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", []);
-        }
-        const pk = req.body.pk;
-        let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${pk}`);
-        item = item?.result[0];
-        if (item?.is_deadline == 1) {
-            return response(req, res, -100, "마감된 상품입니다.", []);
-        }
-        let is_already_subscribe = await isOrdered(decode, item);
-        if (is_already_subscribe) {
-            return response(req, res, -100, "이미 구독한 상품입니다.", []);
-        }
-        return response(req, res, 100, "success", item);
-    } catch (e) {
-        console.log(e);
-        return response(req, res, -200, "서버 에러 발생", []);
-    }
-}
+
 function excelDateToJSDate(serial) {
     var utc_days = Math.floor(serial - 25569);
     var utc_value = utc_days * 86400;
@@ -3237,255 +2083,13 @@ function excelDateToJSDate(serial) {
 
     return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
 }
-const insertUserMoneyByExcel = async (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 40);
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다", []);
-        }
-        let { list } = req.body;
-        console.log(list)
-        let log_obj = [];
-        let user_list_sql = `SELECT pk, id FROM user_table WHERE id IN (`;
-        for (var i = 0; i < list.length; i++) {
-            user_list_sql += `'${list[i][0]}',`
-        }
-        user_list_sql = user_list_sql.substring(0, user_list_sql.length - 1);
-        user_list_sql += ")";
-        let user_list = await dbQueryList(user_list_sql);
-
-        user_list = user_list?.result;
-
-        let user_obj = {};
-        for (var i = 0; i < user_list.length; i++) {
-            user_obj[user_list[i]['id']] = user_list[i];
-        }
-
-        let class_list = await dbQueryList(`SELECT * FROM academy_category_table ORDER BY pk DESC`);
-        class_list = class_list.result;
-        let class_obj = {};
-        for (var i = 0; i < class_list.length; i++) {
-            class_obj[class_list[i]['title']] = class_list[i];
-        }
-        let insert_list = [];
-        if (list.length > 0) {
-            for (var i = 0; i < list.length; i++) {
-                let user_pk = 0;
-                let item_pk = 0;
-                let master_pk = 0;
-                let price = 0;
-                let status = 1;
-                let date = '';
-                let type = 0;
-                let transaction_status = 0;
-                if (user_obj[list[i][0]]) {
-                    user_pk = user_obj[list[i][0]]?.pk;
-                } else {
-                    return response(req, res, -100, `${list[i][0]} 아이디를 찾을 수 없습니다.`, []);
-                }
-                if (class_obj[list[i][1]]) {
-                    item_pk = class_obj[list[i][1]]?.pk;
-                    master_pk = class_obj[list[i][1]]?.master_pk;
-                } else {
-                    return response(req, res, -100, `${list[i][1]} 강의를 찾을 수 없습니다.`, []);
-                }
-
-                let date_regex = RegExp(/^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$/);
-
-                if (!date_regex.test(list[i][4])) {
-                    return response(req, res, -100, `${list[i][4]} 는 등록일 정규식에 맞지 않습니다.`, []);
-                } else {
-                    date = list[i][4] + ' 00:00:00';
-                }
-                if (typeof list[i][2] == 'string') {
-                    list[i][2] = list[i][2].replaceAll(',', '');
-                }
-                if (typeof list[i][3] == 'string') {
-                    list[i][3] = list[i][3].replaceAll(',', '');
-                }
-                if ((list[i][2] && isNaN(parseInt(list[i][2]))) && (list[i][3] && isNaN(parseInt(list[i][3])))) {
-                    return response(req, res, -100, `승인금액 또는 취소금액에 숫자 이외의 값이 감지 되었습니다.`, []);
-                }
-                if ((list[i][2] && parseInt(list[i][2]) > 0) && (list[i][3] && parseInt(list[i][3]) > 0)) {
-                    return response(req, res, -100, `승인금액과 취소금액은 동시에 올릴 수 없습니다.`, []);
-                }
-                if (parseInt(list[i][2]) < 0 || parseInt(list[i][3]) < 0) {
-                    return response(req, res, -100, `승인금액과 취소금액에 음수를 넣을 수 없습니다.`, []);
-                }
-                if (list[i][2] && parseInt(list[i][2]) > 0) {
-                    price = parseInt(list[i][2]);
-                    transaction_status = 0;
-                }
-                if (list[i][3] && parseInt(list[i][3]) > 0) {
-                    price = parseInt(list[i][3]) * (-1);
-                    transaction_status = -1;
-                }
-                let pay_type_list = ['카드결제', '무통장입금', '기타'];
-                if (!pay_type_list.includes(list[i][5])) {
-                    return response(req, res, -100, `결제타입에 카드결제, 무통장입금, 기타 중 하나를 입력해주세요`, []);
-                } else {
-                    for (var j = 0; j < pay_type_list.length; j++) {
-                        if (list[i][5] == pay_type_list[j]) {
-                            type = j;
-                        }
-                    }
-                }
-                insert_list.push([
-                    user_pk,
-                    item_pk,
-                    master_pk,
-                    price,
-                    status,
-                    date,
-                    type,
-                    transaction_status
-                ])
-            }
-            await db.beginTransaction();
-            let result = await insertQuery(`INSERT INTO subscribe_table (user_pk, academy_category_pk, master_pk, price, status, trade_date, type, transaction_status) VALUES ? `, [insert_list]);
-            await db.commit();
-            return response(req, res, 100, "success", []);
-        } else {
-            await db.commit();
-            return response(req, res, 100, "success", []);
-        }
-    } catch (err) {
-        console.log(err)
-        await db.rollback();
-        return response(req, res, -200, "서버 에러 발생", []);
-    } finally {
-
-    }
-}
-const insertPayResult = async (req, res) => {
-    try {
-        const decode = checkLevel(req.cookies.token, 0);
-        const { item_pk, status } = req.body;
-        let result = await insertQuery(`INSERT INTO pay_result_table (user_pk, item_pk, status) VALUES (?, ?, ?)`, [decode?.pk ?? 0, item_pk, status]);
-        let academy_category = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${item_pk}`);
-        academy_category = academy_category?.result[0];
-        return response(req, res, 100, "success", academy_category);
-    } catch (e) {
-        db.rollback();
-        console.log(e);
-        return response(req, res, -200, "서버 에러 발생", []);
-    }
-}
-const isOrdered = async (decode, item) => {
-    let is_already_subscribe = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND status=1 AND academy_category_pk=${item?.pk} AND end_date >= '${returnMoment().substring(0, 10)}' AND use_status=1 AND transaction_status >= 0 `);
-    is_already_subscribe = is_already_subscribe?.result;
-    console.log(is_already_subscribe)
-    return is_already_subscribe.length > 0 ? true : false;
-}
-
-const orderInsert = async (decode, body, params) => {
-    let result = { 'code': -1, 'obj': {} };
-    try {
-        let item = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=${params?.pk}`);
-        item = item?.result[0];
-        if (item?.is_deadline == 1) {
-            result['code'] = 0;
-            result['obj']['message'] = '마감된 상품입니다.';
-            return result;
-        }
-        let is_already_subscribe = await isOrdered(decode, item);
-
-        if (!is_already_subscribe) {
-            let price = (item?.price ?? 0) * (100 - item?.discount_percent ?? 0) / 100;
-            let { data: resp } = await axios.post('https://divecebu.co.kr/divecebu/api/aynil/approval.php', { ...body, ...params, allat_amt: price });
-            result['obj'] = resp;
-
-            if (resp?.result == '0000') {
-                let trade_date = resp?.data?.approval_ymdhms;
-                trade_date = `${trade_date.slice(0, 4)}-${trade_date.slice(4, 6)}-${trade_date.slice(6, 8)} ${trade_date.slice(8, 10)}:${trade_date.slice(10, 12)}:${trade_date.slice(12, 14)}`;
-                let keys = {
-                    price: resp?.data?.amt,
-                    status: 1,
-                    user_pk: decode?.pk,
-                    master_pk: item?.master_pk,
-                    academy_category_pk: item?.pk,
-                    end_date: item?.end_date,
-                    card_num: "",
-                    card_name: resp?.data?.card_nm,
-                    trade_date: trade_date,
-                    installment: parseInt(resp?.data?.sell_mm),
-                    order_num: resp?.data?.order_no,
-                    approval_num: resp?.data?.approval_no
-                };
-                await db.beginTransaction();
-                let delete_bag_result = await insertQuery(`DELETE FROM subscribe_table WHERE user_pk=? AND status=0 AND academy_category_pk=?`, [decode?.pk, item?.pk]);
-                let insert_perchase_result = await insertQuery(`INSERT INTO subscribe_table (${Object.keys(keys).join()}) VALUES (${Object.keys(keys).map(() => { return "?" })})`, Object.values(keys));
-                await db.commit();
-                result['code'] = 1;
-                result['obj']['message'] = '성공적으로 구매 되었습니다.';
-            } else {
-                await db.rollback();
-                result['code'] = -2;
-                result['obj']['message'] = resp?.message;
-            }
-        } else {
-            await db.rollback();
-            result['code'] = 0;
-            result['obj']['message'] = '현재 이용중인 구독상품 입니다.'
-        }
-    } catch (err) {
-        await db.rollback();
-        console.log(err)
-        result['code'] = -1;
-        result['obj']['message'] = err;
-    }
-    return result;
-}
-const onKeyrecieve = async (req, res) => {
-    let body = { ...req.body };
 
 
-    body['allat_result_msg'].CharSet = 'euc-kr';
-    if (body['allat_enc_data']) {
-        body['allat_enc_data'].CharSet = 'euc-kr';
-    }
-    let js = `<script>
-    if(window.opener != undefined)
-    {
-        opener.result_submit('${body?.allat_result_cd}', '${body?.allat_result_msg}', '${body?.allat_enc_data}');
-        window.close();
-    }
-    else
-        parent.result_submit('${body?.allat_result_cd}', '${body?.allat_result_msg}', '${body?.allat_enc_data}');
-    </script>`;
-    try {
-        const decode = checkLevel(req.cookies.token, 0)
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", []);
-        } else {
-            let params = { ...req.params };
-            if (body?.allat_result_cd == '0000') {
-                let result = await orderInsert(decode, body, params);
-            }
-        }
-        res.send(js);
-    }
-    catch (err) {
-        res.send(js);
-    }
-
-}
-
-
-const onNotiKiwoom = (req, res) => {
-    try {
-        let { PAYMETHOD, CPID, DAOUTRX, ORDERNO, AMOUNT, PRODUCTNAME, SETTDATE, AUTHNO, RESERVEDSTRING, CARDCODE, CARDNAME, CARDNO } = req.query;
-        console.log(req.query);
-        res.send("success");
-    } catch (err) {
-        console.log(err);
-    }
-}
 
 module.exports = {
-    onLoginById, getUserToken, onLogout, checkExistId, checkPassword, checkExistIdByManager, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo,//auth
-    getUsers, getOneWord, getOneEvent, getItems, getItem, getHomeContent, getSetting, getVideoContent, getChannelList, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
-    addMaster, onSignUp, addOneWord, addOneEvent, addItem, addItemByUser, addIssueCategory, addNoteImage, addVideo, addSetting, addChannel, addFeatureCategory, addNotice, addComment, addAlarm, addPopup, insertPayResult, insertUserMoneyByExcel,//insert 
-    updateUser, updateItem, updateIssueCategory, updateVideo, updateMaster, updateSetting, updateStatus, updateChannel, updateFeatureCategory, updateNotice, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
-    deleteItem, onResign, getAcademyList, getEnrolmentList, getMyItems, getMyItem, checkClassStatus, onSubscribe, updateSubscribe, getMyAcademyClasses, getMyAcademyClass, getMyAcademyList, getHeaderContent, getAcademyCategoryContent, getMasterContent, getReviewByMasterPk, onKeyrecieve, onNotiKiwoom, getShops
-};
+    onLoginById, getUserToken, onLogout, checkExistId, checkPassword, checkExistIdByManager, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getAddressByText, getMyInfo, getShops, //auth
+    getUsers, getItems, getHomeContent, getSetting, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getAllPosts, getUserStatistics, itemCount, addImageItems,//select
+    onSignUp, addItem, addItemByUser, addNoteImage, addSetting, addComment, addPopup, //insert 
+    updateUser, updateItem, updateSetting, updateStatus, onTheTopItem, changeItemSequence, changePassword, updateComment, updatePopup,//update
+    deleteItem, onResign, getMyItems, getMyItem, getHeaderContent, getMasterContent, getReviewByMasterPk, getShop
+}
