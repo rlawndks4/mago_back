@@ -1052,8 +1052,8 @@ const addItem = async (req, res) => {
             values_str += ", ?"
         }
         let table = req.body.table;
-
-        if (table == 'notice' || table == 'faq' || table == 'event' || table == 'shop') {
+        let add_user_pk_list = ['notice', 'faq', 'event', 'shop', 'freeboard', 'question', 'humor', 'news', 'party']
+        if (add_user_pk_list.includes(table)) {
             keys.push('user_pk');
             values.push(decode?.pk);
             values_str += ", ?"
@@ -1633,7 +1633,8 @@ const getShops = async (req, res) => {
 }
 const getShop = async (req, res) => {
     try {
-        let { pk, name } = req.body;
+        let { pk, name, review_page, event_page } = req.body;
+        let page_cut = 10;
         let result_list = [];
         if (!pk && !name) {
             return response(req, res, -404, "잘못된 접근입니다.", [])
@@ -1649,8 +1650,10 @@ const getShop = async (req, res) => {
         }
         let sql_list = [
             { table: 'shop', sql: `SELECT * FROM shop_table WHERE pk=${pk}`, type: 'obj' },
-            { table: 'review', sql: `SELECT * FROM shop_review_table WHERE status=1 AND shop_pk=${pk} ORDER BY pk DESC`, type: 'list' },
-            { table: 'event', sql: `SELECT * FROM shop_event_table WHERE status=1 AND shop_pk=${pk} ORDER BY pk DESC`, type: 'list' },
+            { table: 'review', sql: `SELECT shop_review_table.*, user_table.nickname FROM shop_review_table LEFT JOIN user_table ON shop_review_table.user_pk=user_table.pk WHERE status=1 AND shop_pk=${pk} ORDER BY pk DESC LIMIT ${(review_page - 1) * page_cut}, ${page_cut}`, type: 'list' },
+            { table: 'review_size', sql: `SELECT COUNT(*) AS size FROM shop_review_table WHERE status=1 AND shop_pk=${pk}`, type: 'obj' },
+            { table: 'event', sql: `SELECT shop_event_table.*, user_table.nickname FROM shop_event_table LEFT JOIN user_table ON shop_event_table.user_pk=user_table.pk WHERE status=1 AND shop_pk=${pk} ORDER BY pk DESC LIMIT ${(event_page - 1) * page_cut}, ${page_cut}`, type: 'list' },
+            { table: 'event_size', sql: `SELECT COUNT(*) AS size FROM shop_event_table WHERE status=1 AND shop_pk=${pk}`, type: 'obj' },
         ];
         for (var i = 0; i < result_list.length; i++) {
             await result_list[i];
@@ -1672,14 +1675,14 @@ const getShop = async (req, res) => {
         let country_list = await dbQueryList(`SELECT * FROM shop_country_table`);
         country_list = country_list?.result;
         let country_obj = listToObjKey(country_list, 'pk');
-        result_obj['shop']['price_list'] = JSON.parse(result_obj['shop']['price_list']??'[]');
-        result_obj['shop']['option_list'] = JSON.parse(result_obj['shop']['option_list']??'[]');
-        result_obj['shop']['country_list'] = JSON.parse(result_obj['shop']['country_list']??'[]');
+        result_obj['shop']['price_list'] = JSON.parse(result_obj['shop']['price_list'] ?? '[]');
+        result_obj['shop']['option_list'] = JSON.parse(result_obj['shop']['option_list'] ?? '[]');
+        result_obj['shop']['country_list'] = JSON.parse(result_obj['shop']['country_list'] ?? '[]');
 
-        for(var i = 0;i<result_obj['shop']['option_list'].length;i++){
+        for (var i = 0; i < result_obj['shop']['option_list'].length; i++) {
             result_obj['shop']['option_list'][i] = option_obj[result_obj['shop']['option_list'][i]];
         }
-        for(var i = 0;i<result_obj['shop']['country_list'].length;i++){
+        for (var i = 0; i < result_obj['shop']['country_list'].length; i++) {
             result_obj['shop']['country_list'][i] = country_obj[result_obj['shop']['country_list'][i]];
         }
         return response(req, res, 100, "success", result_obj)
@@ -2099,7 +2102,7 @@ const getAddressByLocation = async (req, res) => {
         const { addition0, addition1, addition2, addition3, addition4 } = land;
         const address = `${area1.name} ${area2.name} ${area3.name} ${area4.name} `;
         return response(req, res, 100, "success", address);
-       
+
     } catch (e) {
         console.log(e);
         return response(req, res, -200, "서버 에러 발생", []);
