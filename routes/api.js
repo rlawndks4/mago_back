@@ -1592,7 +1592,7 @@ const getOptionObjBySchema = async (schema, whereStr) => {
 }
 const getShops = async (req, res) => {
     try {
-        let { theme, is_around, city } = req.body;
+        let { theme, is_around, city, sub_city } = req.body;
         let column_list = [
             'shop_table.*',
             'city_table.name AS city_name',
@@ -1612,6 +1612,10 @@ const getShops = async (req, res) => {
         if (city) {
             sql += ` AND shop_table.city_pk=${city} `;
         }
+        if (sub_city) {
+            sql += ` AND shop_table.sub_city_pk=${sub_city} `;
+        }
+       
         let country_list = await dbQueryList(`SELECT * FROM shop_country_table`);
         country_list = country_list?.result;
         let country_obj = listToObjKey(country_list, 'pk');
