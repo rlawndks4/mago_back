@@ -1098,7 +1098,7 @@ const addItemByUser = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let permission_schema = ['request', 'freeboard', 'question', 'humor', 'news', 'party', 'shop_review', 'shop_event'];
+        let permission_schema = ['request', 'freeboard', 'question', 'humor', 'news', 'party', 'shop_review', 'shop_event', 'shop'];
         if (!permission_schema.includes(req.body.table)) {
             return response(req, res, -150, "잘못된 접근입니다.", [])
         }
@@ -1131,7 +1131,7 @@ const addItemByUser = async (req, res) => {
             values_str += ", ?"
         }
         let table = req.body.table;
-        let use_user_pk = ['request', 'freeboard', 'question', 'humor', 'news', 'party', 'shop_review', 'shop_event'];
+        let use_user_pk = ['request', 'freeboard', 'question', 'humor', 'news', 'party', 'shop_review', 'shop_event', 'shop'];
         if (use_user_pk.includes(table)) {
             keys.push('user_pk');
             values.push(decode?.pk);

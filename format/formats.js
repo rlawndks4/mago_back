@@ -69,6 +69,11 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_) => {
         page_sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
         sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
         order = 'pk'
+    }if(schema=='shop'){
+        sql = ` SELECT shop_table.*, user_table.nickname AS nickname, user_table.id AS id FROM shop_table`;
+        sql += ` LEFT JOIN user_table ON shop_table.user_pk=user_table.pk `;
+        page_sql += ` LEFT JOIN user_table ON shop_table.user_pk=user_table.pk `;
+        order = 'pk'
     }else if(schema=='comment'){
         sql = ` SELECT comment_table.*, user_table.nickname AS nickname, user_table.id AS id FROM comment_table`;
         page_sql += ` LEFT JOIN user_table ON comment_table.user_pk=user_table.pk `;
