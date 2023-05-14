@@ -752,9 +752,22 @@ const updateUser = async (req, res) => {
 const getHomeContent = async (req, res) => {
     try {
         let result_list = [];
+        let shop_column_list = [
+            'shop_table.*',
+            'city_table.name AS city_name',
+            'sub_city_table.name AS sub_city_name',
+            'sub_city_table.name AS sub_city_name',
+            'shop_theme_table.name AS theme_name',
+        ]
+        let shop_sql = `SELECT ${shop_column_list.join()} FROM shop_table `;
+        shop_sql += ` LEFT JOIN city_table ON shop_table.city_pk=city_table.pk `;
+        shop_sql += ` LEFT JOIN sub_city_table ON shop_table.sub_city_pk=sub_city_table.pk `;
+        shop_sql += ` LEFT JOIN shop_theme_table ON shop_table.theme_pk=shop_theme_table.pk `;
+        shop_sql += ` WHERE shop_table.status=1 ORDER BY RAND() LIMIT 6 `;
         let sql_list = [
             { table: 'banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'city', sql: 'SELECT * FROM city_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
+            { table: 'shop', sql: shop_sql, type: 'list' },
         ];
 
         for (var i = 0; i < result_list.length; i++) {
@@ -770,6 +783,17 @@ const getHomeContent = async (req, res) => {
         let result = (await when(result_list));
         for (var i = 0; i < (await result).length; i++) {
             result_obj[(await result[i])?.table] = (await result[i])?.data;
+        }
+        let country_list = await dbQueryList(`SELECT * FROM shop_country_table`);
+        country_list = country_list?.result;
+        let country_obj = listToObjKey(country_list, 'pk');
+        for (var i = 0; i < result_obj['shop'].length; i++) {
+            result_obj['shop'][i]['country_list'] = JSON.parse(result_obj['shop'][i]['country_list']);
+            for (var j = 0; j < result_obj['shop'][i]['country_list'].length; j++) {
+                if (country_obj[result_obj['shop'][i]['country_list'][i]]) {
+                    result_obj['shop'][i]['country_list'][j] = country_obj[result_obj['shop'][i]['country_list'][j]];
+                }
+            }
         }
         return response(req, res, 100, "success", result_obj)
 
