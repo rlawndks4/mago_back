@@ -790,7 +790,7 @@ const getHomeContent = async (req, res) => {
         for (var i = 0; i < result_obj['shop'].length; i++) {
             result_obj['shop'][i]['country_list'] = JSON.parse(result_obj['shop'][i]['country_list']);
             for (var j = 0; j < result_obj['shop'][i]['country_list'].length; j++) {
-                if (country_obj[result_obj['shop'][i]['country_list'][i]]) {
+                if (country_obj[result_obj['shop'][i]['country_list'][j]]) {
                     result_obj['shop'][i]['country_list'][j] = country_obj[result_obj['shop'][i]['country_list'][j]];
                 }
             }
