@@ -1648,7 +1648,7 @@ const getShops = async (req, res) => {
         for (var i = 0; i < shops.length; i++) {
             shops[i]['country_list'] = JSON.parse(shops[i]['country_list']);
             for (var j = 0; j < shops[i]['country_list'].length; j++) {
-                if (country_obj[shops[i]['country_list'][i]]) {
+                if (country_obj[shops[i]['country_list'][j]]) {
                     shops[i]['country_list'][j] = country_obj[shops[i]['country_list'][j]];
                 }
             }
