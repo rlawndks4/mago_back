@@ -46,7 +46,8 @@ const listFormatBySchema = async (schema, data_) => {
     }
     return data;
 }
-const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_) => {
+const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_, decode_) => {
+    let decode = decode_;
     let sql = sql_;
     let page_sql = page_sql_;
     let order = order_;
@@ -69,6 +70,9 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_) => {
         page_sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
         sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
         order = 'pk'
+        if(decode && decode?.user_level == 0){
+            where_str += ` AND user_pk=${decode?.pk} `;
+        }
     }if(schema=='shop'){
         sql = ` SELECT shop_table.*, user_table.nickname AS nickname, user_table.id AS id FROM shop_table`;
         sql += ` LEFT JOIN user_table ON shop_table.user_pk=user_table.pk `;

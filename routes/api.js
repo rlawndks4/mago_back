@@ -1722,10 +1722,11 @@ const getShop = async (req, res) => {
 }
 const getItems = async (req, res) => {
     try {
+        const decode = checkLevel(req.cookies.token, 0)
+        
         let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date, type, city_pk } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
         let sql = `SELECT * FROM ${table}_table `;
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
-
         let keyword_columns = getKewordListBySchema(table);
         let whereStr = " WHERE 1=1 ";
         if (level) {
@@ -1775,10 +1776,10 @@ const getItems = async (req, res) => {
             page_cut = 15;
         }
 
-        sql = await sqlJoinFormat(table, sql, order, pageSql).sql;
-        pageSql = await sqlJoinFormat(table, sql, order, pageSql).page_sql;
-        order = await sqlJoinFormat(table, sql, order, pageSql).order;
-        whereStr = await sqlJoinFormat(table, sql, order, pageSql, whereStr).where_str;
+        sql = await sqlJoinFormat(table, sql, order, pageSql, "",decode).sql;
+        pageSql = await sqlJoinFormat(table, sql, order, pageSql, "",decode).page_sql;
+        order = await sqlJoinFormat(table, sql, order, pageSql, "",decode).order;
+        whereStr = await sqlJoinFormat(table, sql, order, pageSql, whereStr, decode).where_str;
         pageSql = pageSql + whereStr;
 
         sql = sql + whereStr + ` ORDER BY ${order ? order : 'sort'} DESC `;
