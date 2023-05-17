@@ -70,8 +70,8 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_, decode_) => 
         page_sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
         sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
         order = 'pk'
-        if(decode && decode?.user_level == 0){
-            where_str += ` AND user_pk=${decode?.pk} `;
+        if(!decode || decode?.user_level < 40){
+            where_str += ` AND user_pk=${decode?.pk??0} `;
         }
     }if(schema=='shop'){
         sql = ` SELECT shop_table.*, user_table.nickname AS nickname, user_table.id AS id FROM shop_table`;
