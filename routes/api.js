@@ -1628,7 +1628,7 @@ const getShops = async (req, res) => {
         sql += ` LEFT JOIN city_table ON shop_table.city_pk=city_table.pk `;
         sql += ` LEFT JOIN sub_city_table ON shop_table.sub_city_pk=sub_city_table.pk `;
         sql += ` LEFT JOIN shop_theme_table ON shop_table.theme_pk=shop_theme_table.pk `;
-        sql += ` WHERE status=1 `;
+        sql += ` WHERE shop_table.status=1 `;
 
         if (theme) {
             sql += ` AND theme_pk=${theme} `;
