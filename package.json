@@ -16,6 +16,7 @@
     "cors": "^2.8.5",
     "date-fns": "^2.29.3",
     "dotenv": "^10.0.0",
+    "ejs": "^3.1.9",
     "express": ">= 2.5.9",
     "express-session": "^1.17.2",
     "fcm-node": "^1.6.1",

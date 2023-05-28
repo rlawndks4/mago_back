@@ -18,6 +18,7 @@ const jwt = require('jsonwebtoken')
 const { checkLevel, logRequestResponse, isNotNullOrUndefined, namingImagesPath, nullResponse, lowLevelResponse, response, returnMoment, sendAlarm, categoryToNumber, tooMuchRequest } = require('./util')
 app.use(bodyParser.json({ limit: '100mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '100mb' }));
+const ejs = require('ejs');
 //multer
 const { upload } = require('./config/multerConfig')
 //express
@@ -33,8 +34,8 @@ const path = require('path');
 const { insertQuery } = require('./query-util')
 const { getItem } = require('./routes/api')
 app.set('/routes', __dirname + '/routes');
-app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
+app.set('views', './views');
 
 
 app.use('/config', express.static(__dirname + '/config'));
@@ -206,26 +207,18 @@ app.get('/api/item', async (req, res) => {
                 return response(req, res, -200, "서버 에러 발생", []);
         }
 });
-const checkItemBySchema = (schema) => {
-
-}
-
 app.get('/shop', async (req, res) => {
-        console.log(req.query)
-        res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-        <script>
-        </script>
-        </head>
-        <body>
+        let { pk, name, review_page, event_page } = req.query;
+        if (name) {
+                let shop = await dbQueryList(`SELECT * FROM shop_table WHERE name='${name}'`);
+                shop = shop?.result[0];
+                res.render('shop.ejs', { 
+                        name: shop?.name,
+                        og_image:shop?.img_src
+                 });
+        }
 
-        </body>
-        </html>
-        `)
 })
 app.get('/', (req, res) => {
-        console.log(1)
-        res.json({ message: `Server is running on port ${req.secure ? HTTPS_PORT : HTTP_PORT}` });
-});
+        res.render('index');
+})
