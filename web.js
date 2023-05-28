@@ -220,5 +220,5 @@ app.get('/shop', async (req, res) => {
 
 })
 app.get('/', (req, res) => {
-        res.render('index');
-})
+        res.json({ message: `Server is running on port ${!is_test ? HTTPS_PORT : HTTP_PORT}` });
+});
