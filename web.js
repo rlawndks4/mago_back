@@ -33,6 +33,10 @@ const path = require('path');
 const { insertQuery } = require('./query-util')
 const { getItem } = require('./routes/api')
 app.set('/routes', __dirname + '/routes');
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+
+
 app.use('/config', express.static(__dirname + '/config'));
 //app.use('/image', express.static('./upload'));
 app.use('/image', express.static(__dirname + '/image'));
@@ -205,62 +209,23 @@ app.get('/api/item', async (req, res) => {
 const checkItemBySchema = (schema) => {
 
 }
-app.get('/api/getvideocontent', (req, res) => {
-        try {
-                console.log(app.connectionsN)
-                //  if (tooMuchRequest(app.connectionsN)) {
-                //          return response(req, res, -120, "접속자 수가 너무많아 지연되고있습니다.(잠시후 다시 시도 부탁드립니다.)", [])
-                //  }
-                const decode = checkLevel(req.cookies.token, 0)
-                if (!decode) {
-                        return response(req, res, -150, "권한이 없습니다.", [])
-                }
 
-                const pk = req.query.pk;
-                let sql1 = `SELECT video_table.* , user_table.nickname, user_table.name FROM video_table LEFT JOIN user_table ON video_table.user_pk = user_table.pk WHERE video_table.pk=? LIMIT 1`;//비디오 정보
-                let sql2 = `SELECT video_relate_table.*, video_table.* FROM video_relate_table LEFT JOIN video_table ON video_relate_table.relate_video_pk = video_table.pk WHERE video_relate_table.video_pk=? `//관련영상
-                let sql3 = `SELECT video_table.pk, video_table.link, video_table.title, user_table.name, user_table.nickname FROM video_table LEFT JOIN user_table ON video_table.user_pk = user_table.pk ORDER BY pk DESC LIMIT 5`;//최신영상
-                if (req.query.views) {
-                        db.query("UPDATE video_table SET views=views+1 WHERE pk=?", [pk], (err, result_view) => {
-                                if (err) {
-                                        console.log(err)
-                                        return response(req, res, -200, "서버 에러 발생", [])
-                                } else {
-                                }
-                        })
-                }
-                db.query(sql1, [pk], async (err, result1) => {
-                        if (err) {
-                                console.log(err)
-                                return response(req, res, -200, "서버 에러 발생", []);
-                        } else {
-                                await db.query(sql2, [pk], async (err, result2) => {
-                                        if (err) {
-                                                console.log(err)
-                                                return response(req, res, -200, "서버 에러 발생", [])
-                                        } else {
-                                                await db.query(sql3, async (err, result3) => {
-                                                        if (err) {
-                                                                console.log(err)
-                                                                return response(req, res, -200, "서버 에러 발생", [])
-                                                        } else {
-                                                                return response(req, res, 100, "success", {
-                                                                        video: result1[0],
-                                                                        relates: result2,
-                                                                        latests: result3
-                                                                })
-                                                        }
-                                                })
-                                        }
-                                })
-                        }
-                })
-        } catch (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", [])
-        }
-});
+app.get('/shop', async (req, res) => {
+        console.log(req.query)
+        res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <script>
+        </script>
+        </head>
+        <body>
 
+        </body>
+        </html>
+        `)
+})
 app.get('/', (req, res) => {
+        console.log(1)
         res.json({ message: `Server is running on port ${req.secure ? HTTPS_PORT : HTTP_PORT}` });
 });
