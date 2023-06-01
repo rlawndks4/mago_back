@@ -207,18 +207,18 @@ app.get('/api/item', async (req, res) => {
                 return response(req, res, -200, "서버 에러 발생", []);
         }
 });
-app.get('/shop', async (req, res) => {
-        let { pk, name, review_page, event_page } = req.query;
-        if (name) {
-                let shop = await dbQueryList(`SELECT * FROM shop_table WHERE name='${name}'`);
-                shop = shop?.result[0];
-                res.render('shop.ejs', { 
-                        name: shop?.name,
-                        og_image:shop?.img_src
-                 });
-        }
+// app.get('/shop', async (req, res) => {
+//         let { pk, name, review_page, event_page } = req.query;
+//         if (name) {
+//                 let shop = await dbQueryList(`SELECT * FROM shop_table WHERE name='${name}'`);
+//                 shop = shop?.result[0];
+//                 res.render('shop.ejs', { 
+//                         name: shop?.name,
+//                         og_image:shop?.img_src
+//                  });
+//         }
 
-})
+// })
 app.get('/', (req, res) => {
         res.json({ message: `Server is running on port ${!is_test ? HTTPS_PORT : HTTP_PORT}` });
 });

@@ -787,11 +787,21 @@ const getHomeContent = async (req, res) => {
         let country_list = await dbQueryList(`SELECT * FROM shop_country_table`);
         country_list = country_list?.result;
         let country_obj = listToObjKey(country_list, 'pk');
+        let option_list = await dbQueryList(`SELECT * FROM shop_option_table`);
+        option_list = option_list?.result;
+        let option_obj = listToObjKey(option_list, 'pk');
+
         for (var i = 0; i < result_obj['shop'].length; i++) {
             result_obj['shop'][i]['country_list'] = JSON.parse(result_obj['shop'][i]['country_list']);
             for (var j = 0; j < result_obj['shop'][i]['country_list'].length; j++) {
                 if (country_obj[result_obj['shop'][i]['country_list'][j]]) {
                     result_obj['shop'][i]['country_list'][j] = country_obj[result_obj['shop'][i]['country_list'][j]];
+                }
+            }
+            result_obj['shop'][i]['option_list'] = JSON.parse(result_obj['shop'][i]['option_list']);
+            for (var j = 0; j < result_obj['shop'][i]['option_list'].length; j++) {
+                if (option_obj[result_obj['shop'][i]['option_list'][j]]) {
+                    result_obj['shop'][i]['option_list'][j] = option_obj[result_obj['shop'][i]['option_list'][j]];
                 }
             }
         }
@@ -1643,6 +1653,10 @@ const getShops = async (req, res) => {
         let country_list = await dbQueryList(`SELECT * FROM shop_country_table`);
         country_list = country_list?.result;
         let country_obj = listToObjKey(country_list, 'pk');
+        let option_list = await dbQueryList(`SELECT * FROM shop_option_table`);
+        option_list = option_list?.result;
+        let option_obj = listToObjKey(option_list, 'pk');
+
         let shops = await dbQueryList(sql);
         shops = shops?.result;
         for (var i = 0; i < shops.length; i++) {
@@ -1650,6 +1664,12 @@ const getShops = async (req, res) => {
             for (var j = 0; j < shops[i]['country_list'].length; j++) {
                 if (country_obj[shops[i]['country_list'][j]]) {
                     shops[i]['country_list'][j] = country_obj[shops[i]['country_list'][j]];
+                }
+            }
+            shops[i]['option_list'] = JSON.parse(shops[i]['option_list']);
+            for (var j = 0; j < shops[i]['option_list'].length; j++) {
+                if (option_obj[shops[i]['option_list'][j]]) {
+                    shops[i]['option_list'][j] = option_obj[shops[i]['option_list'][j]];
                 }
             }
         }
