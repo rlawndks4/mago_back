@@ -1267,14 +1267,10 @@ const updatePlusUtil = async (schema, body) => {
         let data = '<?xml version="1.0" encoding="UTF-8"?>\n';
         data += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">\n`
         data += `<url><loc>${url}</loc></url>\n`
-        for(var i=0;i<shops.length;i++){
+        for (var i = 0; i < shops.length; i++) {
             let string = `<url><loc>${url}/shop`;
-            if(shops[i]?.city_1){
-                string += `/${shops[i]?.city_1??""}`;
-            }
-            if(shops[i]?.city_2){
-                string += `/${shops[i]?.city_2??""}`;
-            }
+            string += `/${shops[i]?.city_1 ?? ""}`;
+            string += `/${shops[i]?.city_2 ?? ""}`;
             string += `?name=${shops[i]?.name}`;
             string += `</loc></url>\n`;
             data += string;
