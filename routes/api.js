@@ -1270,10 +1270,10 @@ const updatePlusUtil = async (schema, body) => {
         for(var i=0;i<shops.length;i++){
             let string = `<url><loc>${url}/shop`;
             if(shops[i]?.city_1){
-                string += `/${shops[i]?.city_1}`;
+                string += `/${shops[i]?.city_1??""}`;
             }
             if(shops[i]?.city_2){
-                string += `/${shops[i]?.city_2}`;
+                string += `/${shops[i]?.city_2??""}`;
             }
             string += `?name=${shops[i]?.name}`;
             string += `</loc></url>\n`;
