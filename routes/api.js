@@ -20,7 +20,7 @@ const {
     getKioskList, getItemRows, getItemList, dbQueryList, dbQueryRows, insertQuery, getTableAI
 } = require('../query-util')
 const macaddress = require('node-macaddress');
-
+const fs = require('fs');
 const db = require('../config/db')
 const { upload } = require('../config/multerConfig')
 const { Console, table } = require('console')
@@ -39,6 +39,7 @@ const kakaoOpt = {
     clientId: '4a8d167fa07331905094e19aafb2dc47',
     redirectUri: 'http://172.30.1.19:8001/api/kakao/callback',
 };
+
 router.get('/', (req, res) => {
     console.log("back-end initialized")
     res.send('back-end initialized')
@@ -1095,10 +1096,7 @@ const addItem = async (req, res) => {
         let sql = `INSERT INTO ${table}_table (${keys.join()}) VALUES (${values_str}) `;
         await db.beginTransaction();
         let result = await insertQuery(sql, values);
-        let not_use_sort = ['subscribe'];
-        if (!not_use_sort.includes(table)) {
-            let result2 = await insertQuery(`UPDATE ${table}_table SET sort=? WHERE pk=?`, [result?.result?.insertId, result?.result?.insertId]);
-        }
+        let result2 = await updatePlusUtil(table, req.body);
         await db.commit();
         return response(req, res, 200, "success", []);
 
@@ -1262,8 +1260,29 @@ const updateItem = async (req, res) => {
     }
 }
 const updatePlusUtil = async (schema, body) => {
-    if (schema == 'academy_category') {
-        let result = await insertQuery(`UPDATE subscribe_table SET end_date=? WHERE academy_category_pk=?`, [body?.end_date, body?.pk]);
+    if (schema == 'shop') {
+        let url = 'https://mago1004.com';
+        let shops = await dbQueryList("SELECT * FROM shop_table ");
+        shops = shops?.result;
+        let data = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        data += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">\n`
+        data += `<url><loc>${url}</loc></url>\n`
+        for(var i=0;i<shops.length;i++){
+            let string = `<url><loc>${url}`;
+            if(shops[i]?.city_1){
+                string += `/${shops[i]?.city_1}`;
+            }
+            if(shops[i]?.city_2){
+                string += `/${shops[i]?.city_2}`;
+            }
+            string += `?name=${shops[i]?.name}`;
+            string += `</loc></url>\n`;
+            data += string;
+        }
+        data += `</urlset>`;
+        fs.writeFileSync('../front/build/sitemap.xml', data, 'utf8', function (error) {
+            console.log('write end')
+        });
     }
 }
 
@@ -1649,7 +1668,7 @@ const getShops = async (req, res) => {
         if (sub_city) {
             sql += ` AND shop_table.sub_city_pk=${sub_city} `;
         }
-       
+
         let country_list = await dbQueryList(`SELECT * FROM shop_country_table`);
         country_list = country_list?.result;
         let country_obj = listToObjKey(country_list, 'pk');
@@ -1743,12 +1762,13 @@ const getShop = async (req, res) => {
 const getItems = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0)
-        
+
         let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date, type, city_pk } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
         let sql = `SELECT * FROM ${table}_table `;
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
         let keyword_columns = getKewordListBySchema(table);
         let whereStr = " WHERE 1=1 ";
+
         if (level) {
             whereStr += ` AND ${table}_table.user_level=${level} `;
         }
@@ -1782,7 +1802,6 @@ const getItems = async (req, res) => {
         if (start_date && end_date) {
             whereStr += ` AND (${table}_table.trade_date BETWEEN '${start_date} 00:00:00' AND '${end_date} 23:59:59' )`;
         }
-
         if (keyword) {
             if (keyword_columns?.length > 0) {
                 whereStr += " AND (";
@@ -1796,9 +1815,9 @@ const getItems = async (req, res) => {
             page_cut = 15;
         }
 
-        sql = await sqlJoinFormat(table, sql, order, pageSql, "",decode).sql;
-        pageSql = await sqlJoinFormat(table, sql, order, pageSql, "",decode).page_sql;
-        order = await sqlJoinFormat(table, sql, order, pageSql, "",decode).order;
+        sql = await sqlJoinFormat(table, sql, order, pageSql, "", decode).sql;
+        pageSql = await sqlJoinFormat(table, sql, order, pageSql, "", decode).page_sql;
+        order = await sqlJoinFormat(table, sql, order, pageSql, "", decode).order;
         whereStr = await sqlJoinFormat(table, sql, order, pageSql, whereStr, decode).where_str;
         pageSql = pageSql + whereStr;
 
@@ -1806,6 +1825,7 @@ const getItems = async (req, res) => {
         if (limit && !page) {
             sql += ` LIMIT ${limit} `;
         }
+
         if (page) {
             sql += ` LIMIT ${(page - 1) * page_cut}, ${page_cut}`;
             let get_result = await getItemsReturnBySchema(sql, pageSql, table, req?.body);
