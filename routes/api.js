@@ -1269,9 +1269,9 @@ const updatePlusUtil = async (schema, body) => {
         data += `<url><loc>${url}</loc></url>\n`
         for (var i = 0; i < shops.length; i++) {
             let string = `<url><loc>${url}/shop`;
-            string += `/${shops[i]?.city_1 ?? ""}`;
-            string += `/${shops[i]?.city_2 ?? ""}`;
-            string += `?name=${shops[i]?.name}`;
+            string += `/${shops[i]?.city_1 ? shops[i]?.city_1 : "_"}`;
+            string += `/${shops[i]?.city_2 ? shops[i]?.city_2 : "_"}`;
+            string += `/${shops[i]?.name}`;
             string += `</loc></url>\n`;
             data += string;
         }
