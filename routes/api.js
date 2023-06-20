@@ -1276,6 +1276,7 @@ const updatePlusUtil = async (schema, body) => {
             data += string;
         }
         data += `</urlset>`;
+        console.log(data)
         fs.writeFileSync('../front/build/sitemap.xml', data, 'utf8', function (error) {
             console.log('write end')
         });
@@ -1764,7 +1765,7 @@ const getItems = async (req, res) => {
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
         let keyword_columns = getKewordListBySchema(table);
         let whereStr = " WHERE 1=1 ";
-
+        let setting_result = await updatePlusUtil(table, req.body);
         if (level) {
             whereStr += ` AND ${table}_table.user_level=${level} `;
         }
@@ -2178,18 +2179,12 @@ function excelDateToJSDate(serial) {
     var utc_days = Math.floor(serial - 25569);
     var utc_value = utc_days * 86400;
     var date_info = new Date(utc_value * 1000);
-
     var fractional_day = serial - Math.floor(serial) + 0.0000001;
-
     var total_seconds = Math.floor(86400 * fractional_day);
-
     var seconds = total_seconds % 60;
-
     total_seconds -= seconds;
-
     var hours = Math.floor(total_seconds / (60 * 60));
     var minutes = Math.floor(total_seconds / 60) % 60;
-
     return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
 }
 
