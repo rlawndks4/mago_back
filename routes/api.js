@@ -39,7 +39,8 @@ const kakaoOpt = {
     clientId: '4a8d167fa07331905094e19aafb2dc47',
     redirectUri: 'http://172.30.1.19:8001/api/kakao/callback',
 };
-
+const sharp = require('sharp');
+const path = require('path');
 router.get('/', (req, res) => {
     console.log("back-end initialized")
     res.send('back-end initialized')
@@ -1358,15 +1359,16 @@ const addNoteImage = (req, res) => {
         return response(req, res, -200, "서버 에러 발생", []);
     }
 }
-const addImageItems = (req, res) => {
+const addImageItems = async (req, res) => {
     try {
         let files = { ...req.files };
         let files_keys = Object.keys(files);
         let result = [];
         for (var i = 0; i < files_keys.length; i++) {
+            let file_name = '/image/' + req.files[files_keys[i]][0].fieldname + '/' + req.files[files_keys[i]][0].filename;
             result.push({
                 key: files_keys[i],
-                filename: '/image/' + req.files[files_keys[i]][0].fieldname + '/' + req.files[files_keys[i]][0].filename
+                filename: file_name
             })
         }
         return response(req, res, 100, "success", result);
