@@ -148,12 +148,7 @@ app.get('/api/item', async (req, res) => {
                 let table = req.query.table ?? "user";
                 //console.log(table)
                 const pk = req.query.pk ?? 0;
-                const permission_list = ['setting', 'notice', 'master', 'academy_category', 'review'];
                 let whereStr = " WHERE pk=? ";
-                const decode = checkLevel(req.cookies.token, 0)
-                if ((!decode || decode?.user_level == -10) && !permission_list.includes(table)) {
-                        return response(req, res, -150, "권한이 없습니다.", []);
-                }
                 if (table == 'master') {
                         table = 'user';
                 }
@@ -177,26 +172,6 @@ app.get('/api/item', async (req, res) => {
                                 return response(req, res, -200, "서버 에러 발생s", []);
                         } else {
                                 console.log(req.body)
-
-                                if (table == 'academy' && decode?.user_level <= 0 && req.query.views) {
-                                        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND transaction_status >= 0 AND academy_category_pk=${result[0]?.category_pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
-                                        console.log(is_exist)
-                                        is_exist = is_exist?.result;
-                                        if (is_exist.length > 0) {
-                                        } else {
-                                                if (decode?.user_level < 40) {
-                                                        return response(req, res, -150, "권한이 없습니다.", [])
-                                                }
-                                        }
-                                        let is_period = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=? AND (start_date <='${returnMoment().substring(0, 10)}' AND end_date>='${returnMoment().substring(0, 10)}') `, [result[0]?.category_pk])
-                                        is_period = is_period?.result;
-                                        if (is_period.length > 0) {
-                                        } else {
-                                                if (decode?.user_level < 40) {
-                                                        return response(req, res, -150, "수강 기간이 아닙니다.", [])
-                                                }
-                                        }
-                                }
                                 return response(req, res, 100, "success", result[0]);
                         }
                 })
