@@ -764,7 +764,7 @@ const getHomeContent = async (req, res) => {
         shop_sql += ` LEFT JOIN city_table ON shop_table.city_pk=city_table.pk `;
         shop_sql += ` LEFT JOIN sub_city_table ON shop_table.sub_city_pk=sub_city_table.pk `;
         shop_sql += ` LEFT JOIN shop_theme_table ON shop_table.theme_pk=shop_theme_table.pk `;
-        shop_sql += ` WHERE shop_table.status=1 ORDER BY RAND() LIMIT 6 `;
+        shop_sql += ` WHERE shop_table.status=1 ORDER BY RAND() LIMIT 15 `;
         let sql_list = [
             { table: 'banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
             { table: 'city', sql: 'SELECT * FROM city_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
