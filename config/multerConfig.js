@@ -13,7 +13,7 @@ const storage = multer.diskStorage({
                         file_name = file.originalname.split('.')[0]+'.';
                 }else{
                         file_name = Date.now() + `-${file.fieldname}.`
-                        file_type = file.mimetype.split('/')[1];
+                        file_type = 'webp';
                 }
                 cb(null, file_name + file_type)
 
