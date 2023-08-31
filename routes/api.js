@@ -1097,7 +1097,12 @@ const addItem = async (req, res) => {
         let sql = `INSERT INTO ${table}_table (${keys.join()}) VALUES (${values_str}) `;
         await db.beginTransaction();
         let result = await insertQuery(sql, values);
+        let use_sort = ['sub_city', 'city']
+        if (use_sort.includes(table)) {
+            let result_ = await insertQuery(`UPDATE ${table}_table SET sort=? WHERE pk=?`, [result?.result?.insertId, result?.result?.insertId]);
+        }
         let result2 = await updatePlusUtil(table, req.body);
+
         await db.commit();
         return response(req, res, 200, "success", []);
 
@@ -2042,15 +2047,15 @@ const updateStatus = (req, res) => {
 const onTheTopItem = async (req, res) => {
     try {
         const { table, pk } = req.body;
-        let result = await dbQueryList(`SELECT max(pk) from ${table}_table`);
+        let result = await dbQueryList(`SELECT max(sort) from ${table}_table`);
         result = result?.result;
-        let max_pk = result[0]['max(pk)'];
-
+        let max_pk = result[0]['max(sort)'];
         await db.query(`UPDATE ${table}_table SET sort=? WHERE pk=? `, [max_pk + 1, pk], async (err, result2) => {
             if (err) {
                 console.log(err)
                 return response(req, res, -200, "서버 에러 발생", [])
             } else {
+                let result = insertQuery(`ALTER TABLE ${table}_table AUTO_INCREMENT=?`, [max_pk+2])
                 return response(req, res, 100, "success", [])
             }
         })
