@@ -1270,15 +1270,18 @@ const updatePlusUtil = async (schema, body) => {
         let url = 'https://mago1004.com';
         let shops = await dbQueryList("SELECT * FROM shop_table ");
         shops = shops?.result;
-        let data = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        let data = `<?xml version="1.0" encoding="UTF-8"?>\n`;
         data += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">\n`
         data += `<url><loc>${url}</loc></url>\n`
         for (var i = 0; i < shops.length; i++) {
-            let string = `<url><loc>${url}/shop`;
+            let string = `<url>\n<loc>${url}/shop`;
             string += `/${shops[i]?.city_1 ? shops[i]?.city_1 : "_"}`;
             string += `/${shops[i]?.city_2 ? shops[i]?.city_2 : "_"}`;
             string += `/${shops[i]?.pk}`;
-            string += `</loc></url>\n`;
+            string += `</loc>\n`;
+            string += `<lastmod>${returnMoment().substring(0, 10)}</lastmod>\n`;
+            string += `</url>\n`;
+
             data += string;
         }
         data += `</urlset>`;
@@ -2055,7 +2058,7 @@ const onTheTopItem = async (req, res) => {
                 console.log(err)
                 return response(req, res, -200, "서버 에러 발생", [])
             } else {
-                let result = insertQuery(`ALTER TABLE ${table}_table AUTO_INCREMENT=?`, [max_pk+2])
+                let result = insertQuery(`ALTER TABLE ${table}_table AUTO_INCREMENT=?`, [max_pk + 2])
                 return response(req, res, 100, "success", [])
             }
         })
