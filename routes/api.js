@@ -1683,7 +1683,9 @@ const getShops = async (req, res) => {
         option_list = option_list?.result;
         let option_obj = listToObjKey(option_list, 'pk');
 
+        sql += ` ORDER BY RAND() `;
         let shops = await dbQueryList(sql);
+        console.log(sql)
         shops = shops?.result;
         for (var i = 0; i < shops.length; i++) {
             shops[i]['country_list'] = JSON.parse(shops[i]['country_list']);
