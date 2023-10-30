@@ -706,13 +706,6 @@ const updateUser = async (req, res) => {
         const name = req.body.name ?? "";
         const nickname = req.body.nickname ?? "";
         const phone = req.body.phone ?? "";
-        const address = req.body.address ?? "";
-        const address_detail = req.body.address_detail ?? "";
-        const zip_code = req.body.zip_code ?? "";
-        const account_holder = req.body.account_holder ?? "";
-        const bank_name = req.body.bank_name ?? "";
-        const account_number = req.body.account_number ?? "";
-        const manager_note = req.body.manager_note ?? "";
 
         const user_level = req.body.user_level ?? 0;
 
@@ -735,7 +728,7 @@ const updateUser = async (req, res) => {
                 }
             })
         }
-        await db.query("UPDATE user_table SET id=?, name=?, nickname=?, phone=?, user_level=?, address=?, address_detail=?, zip_code=?, account_holder=?, bank_name=?, account_number=?, manager_note=? WHERE pk=?", [id, name, nickname, phone, user_level, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note, pk], (err, result) => {
+        await db.query("UPDATE user_table SET id=?, name=?, nickname=?, phone=?, user_level=? WHERE pk=?", [id, name, nickname, phone, user_level, pk], (err, result) => {
             if (err) {
                 console.log(err)
                 return response(req, res, -200, "서버에러발생", [])
