@@ -1261,7 +1261,7 @@ const updateItem = async (req, res) => {
 const updatePlusUtil = async (schema, body) => {
     if (schema == 'shop') {
         let url = 'https://mago1004.com';
-        let shops = await dbQueryList("SELECT * FROM shop_table ");
+        let shops = await dbQueryList("SELECT * FROM shop_table WHERE status=1");
         shops = shops?.result;
         let data = `<?xml version="1.0" encoding="UTF-8"?>\n`;
         data += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">\n`
@@ -1274,9 +1274,9 @@ const updatePlusUtil = async (schema, body) => {
             string += `</loc>\n`;
             string += `<lastmod>${returnMoment().substring(0, 10)}</lastmod>\n`;
             string += `</url>\n`;
-
             data += string;
         }
+        
         data += `</urlset>`;
         console.log(data)
         fs.writeFileSync('../user_front/public/sitemap.xml', data, 'utf8', function (error) {
