@@ -1276,7 +1276,7 @@ const updatePlusUtil = async (schema, body) => {
             string += `</url>\n`;
             data += string;
         }
-        
+
         data += `</urlset>`;
         console.log(data)
         fs.writeFileSync('../user_front/public/sitemap.xml', data, 'utf8', function (error) {
@@ -1929,16 +1929,24 @@ function addDays(date, days) {
 }
 
 const getSetting = async (req, res) => {
-    const {shop_id} = req.query;
+    const { shop_id = -1, post_id = -1, post_table="" } = req.query;
     try {
         let result = await dbQueryList("SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1");
         result = result?.result[0];
-        if(shop_id>0){
-            let shop_data = await dbQueryList("SELECT * FROM shop_table WHERE pk=?",[shop_id]);
+        if (shop_id > 0) {
+            let shop_data = await dbQueryList("SELECT * FROM shop_table WHERE pk=?", [shop_id]);
             shop_data = shop_data?.result[0];
             result.meta_title = shop_data?.sub_name
             result.meta_description = shop_data?.description
             result.meta_keywords = shop_data?.hash
+        }
+        if (post_id > 0 && post_table) {
+            let post_data = await dbQueryList(`SELECT * FROM ${post_table}_table WHERE pk=?`, [post_id]);
+            post_data = post_data?.result[0];
+            result.meta_title = post_data?.title
+            result.meta_description = post_data?.title
+            result.meta_keywords = post_data?.title
+            console.log(post_data)
         }
         return response(req, res, 100, "success", result)
 
