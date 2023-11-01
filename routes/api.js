@@ -12,12 +12,14 @@ const when = require('when')
 let iconv = require('iconv-lite');
 const { checkLevel, getSQLnParams, getUserPKArrStrWithNewPK,
     isNotNullOrUndefined, namingImagesPath, nullResponse,
-    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber, getKewordListBySchema, listToObjKey
+    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber, getKewordListBySchema, listToObjKey,
+    communityCategoryList
 } = require('../util')
 const {
     getRowsNumWithKeyword, getRowsNum, getAllDatas,
     getDatasWithKeywordAtPage, getDatasAtPage,
-    getKioskList, getItemRows, getItemList, dbQueryList, dbQueryRows, insertQuery, getTableAI
+    getKioskList, getItemRows, getItemList, dbQueryList, dbQueryRows, insertQuery, getTableAI,
+    getMultipleQueryByWhen
 } = require('../query-util')
 const macaddress = require('node-macaddress');
 const fs = require('fs');
@@ -45,7 +47,6 @@ router.get('/', (req, res) => {
     console.log("back-end initialized")
     res.send('back-end initialized')
 });
-
 
 
 
@@ -1261,7 +1262,7 @@ const updateItem = async (req, res) => {
 const updatePlusUtil = async (schema, body) => {
     if (schema == 'shop') {
         let url = 'https://mago1004.com';
-        let shops = await dbQueryList("SELECT * FROM shop_table WHERE status=1");
+        let shops = await dbQueryList("SELECT city_1, city_2, pk FROM shop_table WHERE status=1");
         shops = shops?.result;
         let data = `<?xml version="1.0" encoding="UTF-8"?>\n`;
         data += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">\n`
@@ -1276,9 +1277,27 @@ const updatePlusUtil = async (schema, body) => {
             string += `</url>\n`;
             data += string;
         }
-
+        let post_sql_list = [];
+        for(var i = 0;i<communityCategoryList.length-1;i++){
+            post_sql_list.push({
+                table:communityCategoryList[i].table,
+                sql:`SELECT pk, title FROM ${communityCategoryList[i].table}_table WHERE status=1 `,
+            })
+        }
+        let post_data = await getMultipleQueryByWhen(post_sql_list)
+        for(var i = 0; i< Object.keys(post_data).length;i++){
+            let table = Object.keys(post_data)[i];
+            for(var j =0;j<post_data[table].length;j++){
+                let string = `<url>\n<loc>${url}/post`;
+                string += `/${table}`;
+                string += `/${post_data[table][j]?.pk}`;
+                string += `</loc>\n`;
+                string += `<lastmod>${returnMoment().substring(0, 10)}</lastmod>\n`;
+                string += `</url>\n`;
+                data += string;
+            }
+        }
         data += `</urlset>`;
-        console.log(data)
         fs.writeFileSync('../user_front/public/sitemap.xml', data, 'utf8', function (error) {
             console.log('write end')
         });

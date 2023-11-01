@@ -1,4 +1,5 @@
 const db = require('./config/db')
+const when = require('when');
 
 const dbQueryRows = (sql) => {
     return new Promise((resolve, reject) => {
@@ -255,9 +256,27 @@ async function getItemRows(brandPKs, keyword) {
         return result
     })
 }
+const getMultipleQueryByWhen = async (sql_list, is_list) => {
+    let result_list = [];
+    for (var i = 0; i < sql_list.length; i++) {
+        result_list.push({
+            table: sql_list[i].table,
+            content: (await dbQueryList(sql_list[i].sql, sql_list[i]?.data ?? []))
+        });
+    }
+    for (var i = 0; i < result_list.length; i++) {
+        await result_list[i];
+    }
+    let result = (await when(result_list));
+    let data = {};
+    for (var i = 0; i < result.length; i++) {
+        data[result[i].table] = result[i]?.content?.result
+    }
+    return data;
+}
 module.exports = {
     getRowsNumWithKeyword, getRowsNum, getAllDatas,
     getDatasWithKeywordAtPage, getDatasAtPage,
     getKioskList, getItemRows, getItemList,
-    dbQueryList, dbQueryRows, insertQuery, getTableAI
+    dbQueryList, dbQueryRows, insertQuery, getTableAI, getMultipleQueryByWhen
 }

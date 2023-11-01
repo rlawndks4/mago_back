@@ -415,11 +415,23 @@ const listToObjKey = (list, key) => {
     }
     return obj;
 }
+const communityCategoryList = [
+    { table: 'freeboard', name: '자유게시판', is_write: true },
+    { table: 'question', name: '질문게시판', is_write: true },
+    { table: 'humor', name: '유머게시판', is_write: true },
+    { table: 'news', name: '마사지소식', is_write: true },
+    { table: 'party', name: '파티모집', is_write: true },
+    { table: 'shop_review', name: '업체후기', },
+    { table: 'shop_event', name: '업체이벤트', },
+    { table: 'notice', name: '공지사항', },
+    { table: 'faq', name: '자주묻는질문', },
+    { table: 'request', name: '문의하기', },
+]
 module.exports = {
     checkLevel, lowLevelException, nullRequestParamsOrBody,
     logRequestResponse, logResponse, logRequest,
     getUserPKArrStrWithNewPK, isNotNullOrUndefined,
     namingImagesPath, getSQLnParams,
     nullResponse, lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, tooMuchRequest,
-    queryPromise, makeHash, commarNumber, getKewordListBySchema, listToObjKey
+    queryPromise, makeHash, commarNumber, getKewordListBySchema, listToObjKey, communityCategoryList
 }
