@@ -1928,16 +1928,20 @@ function addDays(date, days) {
     return clone;
 }
 
-const getSetting = (req, res) => {
+const getSetting = async (req, res) => {
+    const {shop_id} = req.query;
     try {
-        db.query("SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1", (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", [])
-            } else {
-                return response(req, res, 100, "success", result[0])
-            }
-        })
+        let result = await dbQueryList("SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1");
+        result = result?.result[0];
+        if(shop_id>0){
+            let shop_data = await dbQueryList("SELECT * FROM shop_table WHERE pk=?",[shop_id]);
+            shop_data = shop_data?.result[0];
+            result.meta_title = shop_data?.sub_name
+            result.meta_description = shop_data?.description
+            result.meta_keywords = shop_data?.hash
+        }
+        return response(req, res, 100, "success", result)
+
     } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
