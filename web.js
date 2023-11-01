@@ -57,7 +57,6 @@ const dbQueryList = (sql, list) => {
         return new Promise((resolve, reject) => {
                 db.query(sql, list, (err, result, fields) => {
                         if (err) {
-                                console.log(sql)
                                 console.log(err)
                                 reject({
                                         code: -200,
@@ -157,8 +156,13 @@ app.get('/api/item', async (req, res) => {
                 }
 
                 let sql = `SELECT * FROM ${table}_table ` + whereStr;
-
-                if (req.query.views) {
+                let find_column = await dbQueryList(`SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME=? AND TABLE_SCHEMA=?`, [`${table}_table`, 'mago']);
+                find_column = find_column?.result;
+                find_column = find_column.map((column) => {
+                    return column?.COLUMN_NAME
+                })
+                
+                if (req.query.views && find_column.includes('views')) {
                         db.query(`UPDATE ${table}_table SET views=views+1 WHERE pk=?`, [pk], (err, result_view) => {
                                 if (err) {
                                         console.log(err)

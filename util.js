@@ -113,7 +113,6 @@ const queryPromise = (table, sql, type) => {
     return new Promise(async (resolve, reject) => {
         await db.query(sql, (err, result, fields) => {
             if (err) {
-                console.log(sql)
                 console.log(err)
                 reject({
                     code: -200,
