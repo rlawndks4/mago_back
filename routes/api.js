@@ -1269,6 +1269,23 @@ const updatePlusUtil = async (schema, body) => {
         let data = `<?xml version="1.0" encoding="UTF-8"?>\n`;
         data += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">\n`
         data += `<url><loc>${url}</loc><lastmod>${returnMoment().substring(0, 10)}</lastmod>\n</url>\n`
+        let default_list = ['https://mago1004.com/community-list/freeboard/',
+            'https://mago1004.com/community-list/question/',
+            'https://mago1004.com/community-list/humor/',
+            'https://mago1004.com/community-list/news/',
+            'https://mago1004.com/community-list/party/',
+            'https://mago1004.com/community-list/shop_review/',
+            'https://mago1004.com/community-list/shop_event/',
+            'https://mago1004.com/community-list/notice/',
+            'https://mago1004.com/community-list/faq/',
+            'https://mago1004.com/community-list/request/',];
+        for (var i = 0; i < default_list.length; i++) {
+            let string = `<url>\n<loc>${default_list[i]}`;
+            string += `</loc>\n`;
+            string += `<lastmod>${returnMoment().substring(0, 10)}</lastmod>\n`;
+            string += `</url>\n`;
+            data += string;
+        }
         for (var i = 0; i < themes.length; i++) {
             let string = `<url>\n<loc>${url}/shop-list`;
             string += `/?theme=${themes[i]?.pk}`;
