@@ -1262,11 +1262,21 @@ const updateItem = async (req, res) => {
 const updatePlusUtil = async (schema, body) => {
     if (schema == 'shop') {
         let url = 'https://mago1004.com';
+        let themes = await dbQueryList("SELECT * FROM shop_theme_table WHERE status=1");
+        themes = themes?.result;
         let shops = await dbQueryList("SELECT city_1, city_2, pk FROM shop_table WHERE status=1");
         shops = shops?.result;
         let data = `<?xml version="1.0" encoding="UTF-8"?>\n`;
         data += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">\n`
         data += `<url><loc>${url}</loc><lastmod>${returnMoment().substring(0, 10)}</lastmod>\n</url>\n`
+        for (var i = 0; i < themes.length; i++) {
+            let string = `<url>\n<loc>${url}/shop-list`;
+            string += `/?theme=${themes[i]?.pk}`;
+            string += `</loc>\n`;
+            string += `<lastmod>${returnMoment().substring(0, 10)}</lastmod>\n`;
+            string += `</url>\n`;
+            data += string;
+        }
         for (var i = 0; i < shops.length; i++) {
             let string = `<url>\n<loc>${url}/shop`;
             string += `/${shops[i]?.city_1 ? shops[i]?.city_1 : "_"}`;
@@ -1278,16 +1288,16 @@ const updatePlusUtil = async (schema, body) => {
             data += string;
         }
         let post_sql_list = [];
-        for(var i = 0;i<communityCategoryList.length-1;i++){
+        for (var i = 0; i < communityCategoryList.length - 1; i++) {
             post_sql_list.push({
-                table:communityCategoryList[i].table,
-                sql:`SELECT pk, title FROM ${communityCategoryList[i].table}_table WHERE status=1 `,
+                table: communityCategoryList[i].table,
+                sql: `SELECT pk, title FROM ${communityCategoryList[i].table}_table WHERE status=1 `,
             })
         }
         let post_data = await getMultipleQueryByWhen(post_sql_list)
-        for(var i = 0; i< Object.keys(post_data).length;i++){
+        for (var i = 0; i < Object.keys(post_data).length; i++) {
             let table = Object.keys(post_data)[i];
-            for(var j =0;j<post_data[table].length;j++){
+            for (var j = 0; j < post_data[table].length; j++) {
                 let string = `<url>\n<loc>${url}/post`;
                 string += `/${table}`;
                 string += `/${post_data[table][j]?.pk}`;
@@ -1664,7 +1674,7 @@ const getOptionObjBySchema = async (schema, whereStr) => {
 }
 const getShops = async (req, res) => {
     try {
-        let { theme, is_around, city, sub_city } = req.body;
+        let { theme = 0, is_around, city = 0, sub_city = 0 } = req.body;
         let column_list = [
             'shop_table.*',
             'city_table.name AS city_name',
@@ -1678,13 +1688,13 @@ const getShops = async (req, res) => {
         sql += ` LEFT JOIN shop_theme_table ON shop_table.theme_pk=shop_theme_table.pk `;
         sql += ` WHERE shop_table.status=1 `;
 
-        if (theme) {
+        if (theme && theme != 0) {
             sql += ` AND theme_pk=${theme} `;
         }
-        if (city) {
+        if (city && city != 0) {
             sql += ` AND shop_table.city_pk=${city} `;
         }
-        if (sub_city) {
+        if (sub_city && sub_city != 0) {
             sql += ` AND shop_table.sub_city_pk=${sub_city} `;
         }
 
@@ -1948,7 +1958,7 @@ function addDays(date, days) {
 }
 
 const getSetting = async (req, res) => {
-    const { shop_id = -1, post_id = -1, post_table="" } = req.query;
+    const { shop_id = -1, post_id = -1, post_table = "" } = req.query;
     try {
         let result = await dbQueryList("SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1");
         result = result?.result[0];
