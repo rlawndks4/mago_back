@@ -1260,7 +1260,6 @@ const updateItem = async (req, res) => {
     }
 }
 const updatePlusUtil = async (schema, body) => {
-    return;
     if (schema == 'shop') {
         let url = 'https://mago1004.com';
         let themes = await dbQueryList("SELECT * FROM shop_theme_table WHERE status=1");
